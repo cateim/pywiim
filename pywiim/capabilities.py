@@ -42,7 +42,7 @@ from .api.constants import (
 )
 from .api.subwoofer import is_valid_subwoofer_lpf_dict
 from .exceptions import WiiMError
-from .model_names import is_known_wiim_model, is_wiim_12v_trigger_model, is_wiim_ultra
+from .model_names import is_known_wiim_model, is_wiim_12v_trigger_model, is_wiim_display_model
 from .models import DeviceInfo
 from .normalize import canonical_source_key, normalize_vendor
 from .profiles import detect_audio_pro_generation, detect_vendor, get_device_profile
@@ -300,10 +300,10 @@ class WiiMCapabilities:
             capabilities["supports_led_switch"] = True
             _LOGGER.debug("Device %s: LED Indicator supported (Arylic vendor, try-and-ignore)", client.host)
 
-        # Display/LCD (WiiM Ultra only) - model-based, no probe to avoid changing screen state
-        if is_wiim_ultra(device_info.model):
+        # Display/LCD — model-based, no probe (a probe would change the screen).
+        if is_wiim_display_model(device_info.model):
             capabilities["supports_display_config"] = True
-            _LOGGER.debug("Device %s supports display/LCD config (WiiM Ultra)", client.host)
+            _LOGGER.debug("Device %s supports display/LCD config", client.host)
 
         # Probe for getStatusEx support
         try:
@@ -656,8 +656,8 @@ def detect_device_capabilities(device_info: DeviceInfo) -> dict[str, Any]:
         capabilities["supports_led_switch"] = True
         # 12V trigger: known hardware (Ultra / Pro / Pro Plus) only — no HTTP probe/toggle at connect.
         capabilities["supports_trigger_out"] = is_wiim_12v_trigger_model(device_info.model)
-        # Display/LCD on/off and brightness (setLightOperationBrightConfig) - WiiM Ultra only
-        if is_wiim_ultra(device_info.model):
+        # Display/LCD on/off and brightness (setLightOperationBrightConfig).
+        if is_wiim_display_model(device_info.model):
             capabilities["supports_display_config"] = True
     elif capabilities["is_legacy_device"]:
         # Apply Audio Pro generation specific optimizations ONLY for Audio Pro devices

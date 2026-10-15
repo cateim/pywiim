@@ -115,7 +115,7 @@ default_device: 192.168.1.115
 
 **PEQ integration tests:** Run Parametric EQ tests against a WiiM device with `pytest tests/integration/test_peq.py -v -m integration` (requires `WIIM_TEST_DEVICE` or default from config). See [PR #12](https://github.com/mjcumming/pywiim/pull/12) for the PEQ API contribution.
 
-**LED Indicator and Display:** To verify LED indicator and display capabilities on a device, run the diagnostics CLI. It reports `supports_led_indicator` (LED Indicator) and `supports_display_config` (Display, WiiM Ultra only).
+**LED Indicator and Display:** To verify LED indicator and display capabilities on a device, run the diagnostics CLI. It reports `supports_led_indicator` (LED Indicator) and `supports_display_config` (Display: WiiM Ultra and WiiM Sound).
 
 ```bash
 python -m pywiim.cli.diagnostics <device_ip>

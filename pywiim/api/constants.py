@@ -391,7 +391,7 @@ API_ENDPOINT_GET_LED_SWITCH = "/httpapi.asp?command=LED_SWITCH_GET"
 # Arylic: query LED state via MCU ASCII (getMCUASCIICmd:LED); may not be on all devices
 API_ENDPOINT_GET_LED_MCU = "/httpapi.asp?command=getMCUASCIICmd:LED"
 API_ENDPOINT_SET_BUTTONS = "/httpapi.asp?command=Button_Enable_SET:"
-# WiiM Ultra display/LCD (setLightOperationBrightConfig) - screen on/off and brightness
+# Display/LCD (setLightOperationBrightConfig) - screen on/off and brightness (WiiM Ultra and WiiM Sound)
 # Single JSON command (not the same as LED_SWITCH_SET / setLED). Payload always includes
 # default_bright; 1 is minimum on-device (see mjcumming/wiim#213).
 API_ENDPOINT_DISPLAY_CONFIG = "/httpapi.asp?command=setLightOperationBrightConfig:"

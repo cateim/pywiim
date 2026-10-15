@@ -547,7 +547,7 @@ class Player(PlayerBase):
         default_bright: int | None = None,
         auto_sense_enable: int | None = None,
     ) -> None:
-        """Turn display/LCD on or off (WiiM Ultra only).
+        """Turn display/LCD on or off (WiiM Ultra and WiiM Sound).
 
         The LCD uses ``setLightOperationBrightConfig`` (brightness + on/off), not the
         LED indicator API. When turning on, optional ``default_bright`` overrides
@@ -570,7 +570,7 @@ class Player(PlayerBase):
         default_bright: int = DISPLAY_DEFAULT_BRIGHTNESS,
         disable: int = 0,
     ) -> None:
-        """Set display/LCD config (WiiM Ultra only). disable: 0=on, 1=off."""
+        """Set display/LCD config (WiiM Ultra and WiiM Sound). disable: 0=on, 1=off."""
         await self.client.set_display_config(
             auto_sense_enable=auto_sense_enable,
             default_bright=default_bright,
@@ -1399,7 +1399,7 @@ class Player(PlayerBase):
 
     @property
     def supports_display_config(self) -> bool:
-        """Whether display/LCD on-off and brightness is supported (WiiM Ultra only)."""
+        """Whether display/LCD on-off and brightness is supported (WiiM Ultra and WiiM Sound)."""
         return self._properties.supports_display_config
 
     # === UPnP Capabilities ===

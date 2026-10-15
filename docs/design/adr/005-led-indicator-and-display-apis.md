@@ -23,7 +23,7 @@ We expose **two distinct capability areas** and **player-level methods** that mi
 - **Legacy**: Existing `set_led` / `set_led_brightness` (setLED path) remain for devices that use them; prefer `set_led_indicator` and `supports_led_indicator` for the unified indicator control.
 
 ### 2. Display (on/off, optional brightness)
-- **Capability**: `supports_display_config` — True for WiiM Ultra (model-based); no probe that changes screen state.
+- **Capability**: `supports_display_config` — True for WiiM Ultra-family devices and WiiM Sound (model-based; not Sound Lite); no probe that changes screen state.
 - **Control**: `setLightOperationBrightConfig` via `set_display_config` / `set_display_enabled` on client; **player** exposes `set_display_enabled(enabled)` and `set_display_config(...)` that delegate to client (same pattern as subwoofer).
 - **Read**: Only when device includes `light_operation_bright_config` in status (e.g. future Ultra support); otherwise shadow state.
 
@@ -39,5 +39,5 @@ We expose **two distinct capability areas** and **player-level methods** that mi
 - LED Indicator read: we always try to read; on failure we assume on and log a warning; no persistent state between restarts.
 - Arylic devices get LED Indicator capability from vendor (no HTTP at connect); failures on write are ignored to avoid maintainability cost.
 - WiiM devices get LED Indicator capability from **device class** at static merge time; **no** `LED_SWITCH_SET` call during capability detection (avoids turning the status LED off at connect).
-- Display remains WiiM Ultra–only until more models are known; same pattern extends to new devices.
+- Display is model-based (WiiM Ultra family and WiiM Sound). Sound Lite has no screen. Same pattern extends to new devices; no probe that changes screen state.
 - Aligns with subwoofer/EQ: capability-driven, player delegates to client, docs use consistent names (LED Indicator, Display).

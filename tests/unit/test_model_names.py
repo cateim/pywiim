@@ -5,6 +5,7 @@ from __future__ import annotations
 from pywiim.model_names import (
     is_known_wiim_model,
     is_wiim_12v_trigger_model,
+    is_wiim_display_model,
     is_wiim_ultra,
     to_friendly_model_name,
 )
@@ -50,6 +51,27 @@ class TestIsWiiMUltra:
     def test_none_returns_false(self):
         """None model should return False."""
         assert is_wiim_ultra(None) is False
+
+    def test_sound_is_not_ultra(self):
+        """Sound has a screen but is not an Ultra (loop-mode scheme stays Ultra-only)."""
+        assert is_wiim_ultra("WiiM Sound") is False
+        assert is_wiim_ultra("WiiM_Sound_Lite_V2") is False
+
+
+class TestIsWiiMDisplayModel:
+    """LCD config is Ultra-family plus WiiM Sound. Sound Lite has no screen."""
+
+    def test_ultra_and_sound(self):
+        assert is_wiim_display_model("wiim_ultra") is True
+        assert is_wiim_display_model("WiiM Amp Ultra") is True
+        assert is_wiim_display_model("WiiM Sound") is True
+        assert is_wiim_display_model("WiiM_Sound") is True
+
+    def test_sound_lite_and_others_false(self):
+        assert is_wiim_display_model("WiiM Sound Lite") is False
+        assert is_wiim_display_model("WiiM_Sound_Lite_V2") is False
+        assert is_wiim_display_model("WiiM Pro") is False
+        assert is_wiim_display_model(None) is False
 
 
 class TestIsWiiM12VTriggerModel:

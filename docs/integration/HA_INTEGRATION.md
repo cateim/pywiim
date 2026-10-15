@@ -2190,15 +2190,15 @@ class WiiMSubwooferLevel(NumberEntity):
 
 ## LED Indicator and Display Control (ADR 005)
 
-pywiim exposes two distinct capabilities: **LED Indicator** (on/off) and **Display** (WiiM Ultra screen). Use the player API below; no persistent state is stored between sessions.
+pywiim exposes two distinct capabilities: **LED Indicator** (on/off) and **Display** (built-in screen). Use the player API below; no persistent state is stored between sessions.
 
 | Concept | Capability | Player API | Use |
 |--------|------------|------------|-----|
 | **LED Indicator** | `supports_led_indicator` | `get_led_indicator()`, `set_led_indicator(enabled)` | Small status light; Arylic + WiiM (device class / vendor in `capabilities`, no mutating connect probe). Read assumes **on** if device has no read API. |
-| **Display** | `supports_display_config` | `set_display_enabled(enabled)`, `set_display_config(...)` | WiiM Ultra LCD on/off and brightness; **not** the status LED. |
+| **Display** | `supports_display_config` | `set_display_enabled(enabled)`, `set_display_config(...)` | WiiM Ultra and WiiM Sound LCD on/off and brightness; **not** the status LED. |
 
 - **LED Indicator**: We try to read from the device; if read fails or no API exists, we return **on** and log a warning. No persistent state between restarts.
-- **Display** (WiiM Ultra only): Check `player.supports_display_config`; then use the player methods. No read API; integration may track state if needed.
+- **Display** (WiiM Ultra and WiiM Sound): Check `player.supports_display_config`; then use the player methods. No read API; integration may track state if needed.
 
 ### LED Indicator (Light Entity)
 

@@ -798,7 +798,7 @@ player.supports_sleep_timer       # bool - True if sleep timer is supported (Wii
 player.supports_led_control       # bool - True if primary LED control (setLED/setLEDBrightness) is supported
 player.supports_led_switch        # bool - True if Status Light (LED_SWITCH_SET) is supported
 player.supports_led_indicator     # bool - True if LED indicator on/off is supported (ADR 005; Arylic + WiiM)
-player.supports_display_config    # bool - True if display/LCD on-off and brightness is supported (WiiM Ultra only)
+player.supports_display_config    # bool - True if display/LCD on-off and brightness is supported (WiiM Ultra and WiiM Sound)
 ```
 
 **UPnP Capabilities** (depend on UPnP client initialization):
@@ -886,7 +886,7 @@ await player.set_led_brightness(brightness: int)  # 0-100
 # LED Indicator (ADR 005; Arylic + WiiM) – preferred for on/off switch
 on_off = await player.get_led_indicator()  # bool; assumes on if device has no read API
 await player.set_led_indicator(enabled: bool)     # uses LED_SWITCH_SET
-# Display (WiiM Ultra only; setLightOperationBrightConfig JSON – not LED_SWITCH_SET / setLED)
+# Display (WiiM Ultra and WiiM Sound; setLightOperationBrightConfig JSON – not LED_SWITCH_SET / setLED)
 await player.set_display_enabled(enabled: bool, default_bright: int | None = None)  # on: uses full brightness by default (1–100 scale; 1=min)
 await player.set_display_config(auto_sense_enable=0, default_bright=100, disable=0)  # disable: 0=on, 1=off; see DISPLAY_* in pywiim.api.constants
 

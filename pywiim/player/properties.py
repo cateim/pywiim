@@ -1777,7 +1777,7 @@ class PlayerProperties:
 
     @property
     def supports_display_config(self) -> bool:
-        """Whether display/LCD on-off and brightness is supported (WiiM Ultra only)."""
+        """Whether display/LCD on-off and brightness is supported (WiiM Ultra and WiiM Sound)."""
         if not self.player.client:
             return False
         return bool(self.player.client.capabilities.get("supports_display_config", False))

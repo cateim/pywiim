@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **WiiM Sound display** ([wiim #281](https://github.com/mjcumming/wiim/issues/281)) — `supports_display_config` is now set for WiiM Sound as well as the Ultra family, so display on/off and brightness use the same `setLightOperationBrightConfig` path. Sound Lite has no screen and stays unsupported.
+
 ## [2.3.10] - 2026-10-13
 
 ### Added

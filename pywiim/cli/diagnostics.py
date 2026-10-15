@@ -742,10 +742,10 @@ class DeviceDiagnostics:
             return {"supported": False, "error": str(err)}
 
     async def _test_display(self) -> dict[str, Any]:
-        """Test display/LCD (WiiM Ultra only)."""
+        """Test display/LCD (WiiM Ultra and WiiM Sound)."""
         try:
             if not self.client.capabilities.get("supports_display_config", False):
-                return {"supported": False, "reason": "Display not supported (WiiM Ultra only)"}
+                return {"supported": False, "reason": "Display not supported on this model"}
             return {"supported": True, "note": "set_display_enabled / set_display_config available"}
         except Exception as err:
             return {"supported": False, "error": str(err)}

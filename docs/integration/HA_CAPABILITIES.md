@@ -34,7 +34,7 @@ These capabilities are detected via endpoint probing during device initializatio
 | `player.client.capabilities["loop_mode_scheme"]` | `wiim` / `arylic` / `legacy` — shuffle/repeat ``loop_mode`` table | From ``get_device_profile`` (e.g. WiiM Ultra ≥5.2 → `arylic`, [pywiim#17](https://github.com/mjcumming/pywiim/issues/17)) |
 | `player.supports_led_switch` | Status Light (LED_SWITCH_SET) – internal | WiiM: device class (no connect probe); Arylic: vendor |
 | `player.supports_led_indicator` | LED Indicator on/off (ADR 005; use get_led_indicator / set_led_indicator) | Arylic + WiiM |
-| `player.supports_display_config` | Display/LCD on-off and brightness (WiiM Ultra only) | WiiM Ultra only |
+| `player.supports_display_config` | Display/LCD on-off and brightness | WiiM Ultra family and WiiM Sound (not Sound Lite) |
 | `player.supports_subwoofer` | Subwoofer configuration | WiiM only (not Arylic) |
 | `player.supports_trigger_out` | 12V trigger output (amplifier control) | Ultra / Pro / Pro Plus model class (no connect probe) |
 

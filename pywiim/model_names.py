@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import re
 
-__all__ = ["is_known_wiim_model", "is_wiim_ultra", "is_wiim_12v_trigger_model", "to_friendly_model_name"]
+__all__ = [
+    "is_known_wiim_model",
+    "is_wiim_ultra",
+    "is_wiim_display_model",
+    "is_wiim_12v_trigger_model",
+    "to_friendly_model_name",
+]
 
 # Raw `project` aliases seen on WiiM firmware variants.
 # Keep this list conservative and add entries when confirmed by real devices.
@@ -62,11 +68,22 @@ def is_known_wiim_model(model: str | None) -> bool:
 
 
 def is_wiim_ultra(model: str | None) -> bool:
-    """Return True if model is WiiM Ultra (has LCD/display config API)."""
+    """Return True if model is a WiiM Ultra-family device."""
     key = _normalize_model_key(model)
     if not key:
         return False
     return key == "wiim_ultra" or (key.startswith("wiim_") and "ultra" in key)
+
+
+def is_wiim_display_model(model: str | None) -> bool:
+    """Return True if this model has an LCD (``setLightOperationBrightConfig``).
+
+    Ultra-family devices and WiiM Sound. Sound Lite has no screen.
+    """
+    if is_wiim_ultra(model):
+        return True
+    key = _normalize_model_key(model)
+    return key.startswith("wiim_sound") and "lite" not in key
 
 
 # Models known to ship a 12V trigger output (hardware). Do not infer from HTTP at connect:

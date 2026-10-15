@@ -326,7 +326,7 @@ class MiscAPI:
         default_bright: int = DISPLAY_DEFAULT_BRIGHTNESS,
         disable: int = 0,
     ) -> None:
-        """Set display/LCD config (WiiM Ultra only).
+        """Set display/LCD config (WiiM Ultra and WiiM Sound).
 
         Controls the LCD via ``setLightOperationBrightConfig`` (one JSON payload).
         This is **not** the status LED: use ``set_led_switch`` / ``set_led`` for that.
@@ -355,7 +355,7 @@ class MiscAPI:
         default_bright: int | None = None,
         auto_sense_enable: int | None = None,
     ) -> None:
-        """Turn the display/LCD on or off (WiiM Ultra only).
+        """Turn the display/LCD on or off (WiiM Ultra and WiiM Sound).
 
         The device API always sends ``default_bright`` and ``auto_sense_enable``
         in the same command as ``disable``; this wrapper uses

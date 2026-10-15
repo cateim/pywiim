@@ -257,6 +257,14 @@ class TestDeviceCapabilitiesDetection:
         assert capabilities.get("supports_led_switch") is True
         assert capabilities.get("supports_trigger_out") is True
 
+    def test_detect_device_capabilities_wiim_sound_has_display_config(self):
+        """WiiM Sound has a screen; Sound Lite does not (wiim #281)."""
+        sound = detect_device_capabilities(DeviceInfo(uuid="test", model="WiiM Sound", firmware="5.0.1"))
+        lite = detect_device_capabilities(DeviceInfo(uuid="test", model="WiiM_Sound_Lite_V2", firmware="5.0.1"))
+
+        assert sound.get("supports_display_config") is True
+        assert lite.get("supports_display_config") is not True
+
     def test_detect_device_capabilities_audio_pro_mkii(self):
         """Test detecting capabilities for Audio Pro MkII."""
         device_info = DeviceInfo(uuid="test", model="Audio Pro A10 MkII", firmware="1.58")
