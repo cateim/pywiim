@@ -502,6 +502,51 @@ class TestMiscAPI:
         assert payload["disable"] == 0
 
     @pytest.mark.asyncio
+    async def test_get_display_config_parses_power_and_brightness(self, mock_client):
+        """Test getLightOperationBrightConfig maps disable 0/1 and default_bright."""
+        from pywiim.api.base import ApiResponse
+        from pywiim.api.constants import API_ENDPOINT_GET_DISPLAY_CONFIG
+        from pywiim.api.misc import MiscAPI
+
+        requests = []
+
+        class TestClient(MiscAPI):
+            async def _request(self, endpoint):
+                requests.append(endpoint)
+                return ApiResponse(
+                    parsed={"auto_sense_enable": "1", "default_bright": "40", "disable": "0"},
+                    raw=None,
+                )
+
+        client = TestClient()
+        assert await client.get_display_config() == {"enabled": True, "brightness": 40}
+        assert requests == [API_ENDPOINT_GET_DISPLAY_CONFIG]
+
+        class OffClient(MiscAPI):
+            async def _request(self, endpoint):
+                return ApiResponse(parsed='{"disable":1,"default_bright":100}', raw=None)
+
+        assert await OffClient().get_display_config() == {"enabled": False, "brightness": 100}
+
+    @pytest.mark.asyncio
+    async def test_get_display_config_unknown_leaves_none(self, mock_client):
+        """Test a missing endpoint or non-config body does not invent state."""
+        from pywiim.api.base import ApiResponse
+        from pywiim.api.misc import MiscAPI
+
+        class UnknownClient(MiscAPI):
+            async def _request(self, endpoint):
+                return ApiResponse(parsed="unknown command", raw=None)
+
+        assert await UnknownClient().get_display_config() is None
+
+        class ErrorClient(MiscAPI):
+            async def _request(self, endpoint):
+                raise WiiMError("timeout")
+
+        assert await ErrorClient().get_display_config() is None
+
+    @pytest.mark.asyncio
     async def test_get_device_capabilities(self, mock_client):
         """Test getting device capabilities."""
         from pywiim.api.misc import MiscAPI

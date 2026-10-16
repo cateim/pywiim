@@ -128,6 +128,9 @@ class PlayerBase:
         self._last_trigger_out_check: float = 0
         self._led_indicator_on: bool | None = None  # Status LED (None = unknown)
         self._last_led_indicator_check: float = 0
+        self._display_on: bool | None = None  # LCD power (None = unknown)
+        self._display_brightness: int | None = None  # LCD default_bright, 1–100
+        self._last_display_check: float = 0
         self._last_subwoofer_check: float = 0
 
         # Stereo channel balance (-1.0 … 1.0); WiiM HTTP only, gated by supports_channel_balance

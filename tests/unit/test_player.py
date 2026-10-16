@@ -5553,6 +5553,52 @@ class TestPlayerLEDIndicatorAndDisplay:
             default_bright=2,
             disable=1,
         )
+        assert player.display_on is False
+        assert player.display_brightness == 2
+
+    @pytest.mark.asyncio
+    async def test_get_display_config_updates_cache(self, mock_client):
+        """Test a successful read caches power and brightness and a miss does not clear them."""
+        from pywiim.player import Player
+
+        mock_client.get_display_config = AsyncMock(return_value={"enabled": True, "brightness": 40})
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_display_config": True})
+        player = Player(mock_client)
+        result = await player.get_display_config()
+        assert result == {"enabled": True, "brightness": 40}
+        assert player.display_on is True
+        assert player.display_brightness == 40
+
+        mock_client.get_display_config = AsyncMock(return_value=None)
+        assert await player.get_display_config() is None
+        assert player.display_on is True
+        assert player.display_brightness == 40
+
+    @pytest.mark.asyncio
+    async def test_get_display_config_skipped_when_unsupported(self, mock_client):
+        """Test models without a display do not call the read endpoint."""
+        from pywiim.player import Player
+
+        mock_client.get_display_config = AsyncMock()
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_display_config": False})
+        player = Player(mock_client)
+        assert await player.get_display_config() is None
+        mock_client.get_display_config.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_set_display_enabled_updates_cache(self, mock_client):
+        """Test a successful write caches the level that was sent."""
+        from pywiim.player import Player
+
+        mock_client.set_display_enabled = AsyncMock()
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_display_config": True})
+        player = Player(mock_client)
+        callback = MagicMock()
+        player._on_state_changed = callback
+        await player.set_display_enabled(True, default_bright=55)
+        assert player.display_on is True
+        assert player.display_brightness == 55
+        callback.assert_called_once()
 
 
 class TestPlayerBluetoothOutputs:

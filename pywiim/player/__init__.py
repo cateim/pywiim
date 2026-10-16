@@ -562,6 +562,34 @@ class Player(PlayerBase):
             default_bright=default_bright,
             auto_sense_enable=auto_sense_enable,
         )
+        bright = default_bright
+        if enabled and bright is None:
+            bright = DISPLAY_DEFAULT_BRIGHTNESS
+        self._remember_display(enabled, bright)
+
+    async def get_display_config(self) -> dict[str, Any] | None:
+        """Read LCD power and configured brightness. Updates the display cache.
+
+        Returns None when the model has no display or the read fails. A failed
+        read does not clear a previous cache.
+        """
+        if not self.supports_display_config:
+            return None
+        config = await self.client.get_display_config()
+        if config is None:
+            return None
+        self._display_on = bool(config["enabled"])
+        if config.get("brightness") is not None:
+            self._display_brightness = int(config["brightness"])
+        return config
+
+    def _remember_display(self, enabled: bool, brightness: int | None) -> None:
+        """Store the display values just written and notify listeners."""
+        self._display_on = enabled
+        if brightness is not None:
+            self._display_brightness = brightness
+        if self._on_state_changed:
+            self._on_state_changed()
 
     async def set_display_config(
         self,
@@ -576,6 +604,7 @@ class Player(PlayerBase):
             default_bright=default_bright,
             disable=disable,
         )
+        self._remember_display(disable == 0, default_bright)
 
     # === 12V Trigger (WiiM Ultra / Pro / Pro Plus) ===
 
@@ -1292,6 +1321,23 @@ class Player(PlayerBase):
         configuration-tier refresh when LED_SWITCH_GET is supported.
         """
         return self._led_indicator_on
+
+    @property
+    def display_on(self) -> bool | None:
+        """Cached LCD power (True=on, False=off, None=not read yet).
+
+        Updated by ``get_display_config()``, ``set_display_enabled()``, and
+        configuration-tier refresh when ``supports_display_config`` is true.
+        """
+        return self._display_on
+
+    @property
+    def display_brightness(self) -> int | None:
+        """Cached LCD ``default_bright`` (1–100), or None if not read yet.
+
+        This is the configured level, including while adaptive brightness is on.
+        """
+        return self._display_brightness
 
     def upnp_health_status(self) -> dict[str, Any] | None:
         """UPnP event health statistics.

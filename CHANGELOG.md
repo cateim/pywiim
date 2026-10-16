@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.12] - 2026-10-16
+
+### Added
+- **Display readback** ([wiim #281](https://github.com/mjcumming/wiim/issues/281)) — `getLightOperationBrightConfig` is read on startup and about every 60 seconds when `supports_display_config` is true (WiiM Ultra and WiiM Sound). `Player.display_on` and `Player.display_brightness` cache power (`disable` 0/1) and configured `default_bright` (1–100). A missing or unreadable response leaves the cache unchanged. The read does not change the screen.
+
 ## [2.3.11] - 2026-10-15
 
 ### Fixed

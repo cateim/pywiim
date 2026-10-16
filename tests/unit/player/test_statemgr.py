@@ -630,6 +630,40 @@ class TestStateManager:
         mock_player.get_led_indicator.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_refresh_fetches_display_on_full(self, state_manager, mock_player):
+        """Test full refresh reads the LCD when supports_display_config."""
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_display_config": True})
+        mock_player.get_display_config = AsyncMock(return_value={"enabled": False, "brightness": 20})
+        mock_player._last_display_check = 0
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        mock_player.get_display_config.assert_called_once()
+        assert mock_player._last_display_check != 0
+
+    @pytest.mark.asyncio
+    async def test_refresh_skips_display_when_unsupported(self, state_manager, mock_player):
+        """Test refresh does not read the LCD when supports_display_config is false."""
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_display_config": False})
+        mock_player.get_display_config = AsyncMock()
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        mock_player.get_display_config.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_refresh_fetches_trigger_on_interval(self, state_manager, mock_player):
         """Test configuration-tier trigger fetch when interval elapsed."""
         mock_status = PlayerStatus(play_state="pause")

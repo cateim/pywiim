@@ -395,6 +395,8 @@ API_ENDPOINT_SET_BUTTONS = "/httpapi.asp?command=Button_Enable_SET:"
 # Single JSON command (not the same as LED_SWITCH_SET / setLED). Payload always includes
 # default_bright; 1 is minimum on-device (see mjcumming/wiim#213).
 API_ENDPOINT_DISPLAY_CONFIG = "/httpapi.asp?command=setLightOperationBrightConfig:"
+# Read-only LCD config (same fields as the set payload). Does not change the screen.
+API_ENDPOINT_GET_DISPLAY_CONFIG = "/httpapi.asp?command=getLightOperationBrightConfig"
 DISPLAY_BRIGHTNESS_MIN = 1
 DISPLAY_BRIGHTNESS_MAX = 100
 DISPLAY_DEFAULT_BRIGHTNESS = 100
@@ -676,6 +678,7 @@ __all__ = [
     "API_ENDPOINT_ARYLIC_LED",
     "API_ENDPOINT_ARYLIC_LED_BRIGHTNESS",
     "API_ENDPOINT_DISPLAY_CONFIG",
+    "API_ENDPOINT_GET_DISPLAY_CONFIG",
     "API_ENDPOINT_GET_AUDIO_INPUT_ENABLE",
     "API_ENDPOINT_GET_MODE_RENAME",
     "API_ENDPOINT_GET_ACOUSTIC_CAPABILITY",

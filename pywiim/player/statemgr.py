@@ -1123,6 +1123,21 @@ class StateManager:
             except Exception as err:
                 _LOGGER.debug("Failed to fetch LED indicator status for %s: %s", self.player.host, err)
 
+        # LCD — supports_display_config is model-based (ADR 005). Read-only GET, same 60s tier as the LED.
+        display_supported = bool(self.player.client.capabilities.get("supports_display_config", False))
+        should_fetch_display = full or (
+            self._polling_strategy
+            and self._polling_strategy.should_fetch_led_indicator(
+                self.player._last_display_check, display_supported, now=now
+            )
+        )
+        if should_fetch_display and display_supported:
+            try:
+                await self.player.get_display_config()
+                self.player._last_display_check = now
+            except Exception as err:
+                _LOGGER.debug("Failed to fetch display status for %s: %s", self.player.host, err)
+
     async def _finalize_refresh(self, track_changed: bool) -> None:
         """Finalize refresh: sync group state, enrich metadata, propagate, notify.
 

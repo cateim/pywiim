@@ -2195,10 +2195,10 @@ pywiim exposes two distinct capabilities: **LED Indicator** (on/off) and **Displ
 | Concept | Capability | Player API | Use |
 |--------|------------|------------|-----|
 | **LED Indicator** | `supports_led_indicator` | `get_led_indicator()`, `set_led_indicator(enabled)` | Small status light; Arylic + WiiM (device class / vendor in `capabilities`, no mutating connect probe). Read assumes **on** if device has no read API. |
-| **Display** | `supports_display_config` | `set_display_enabled(enabled)`, `set_display_config(...)` | WiiM Ultra and WiiM Sound LCD on/off and brightness; **not** the status LED. |
+| **Display** | `supports_display_config` | `get_display_config()`, `display_on`, `display_brightness`, `set_display_enabled(enabled)`, `set_display_config(...)` | WiiM Ultra and WiiM Sound LCD on/off and brightness; **not** the status LED. |
 
 - **LED Indicator**: We try to read from the device; if read fails or no API exists, we return **on** and log a warning. No persistent state between restarts.
-- **Display** (WiiM Ultra and WiiM Sound): Check `player.supports_display_config`; then use the player methods. No read API; integration may track state if needed.
+- **Display** (WiiM Ultra and WiiM Sound): Check `player.supports_display_config`. `player.refresh()` reads `getLightOperationBrightConfig` on startup and about every 60 seconds. Use `player.display_on` and `player.display_brightness` (1–100). A failed read leaves those as they were (`None` until the first success).
 
 ### LED Indicator (Light Entity)
 
@@ -2230,9 +2230,12 @@ if player.supports_display_config:
     await player.set_display_enabled(True, default_bright=50)  # optional level when turning on
     await player.set_display_enabled(False)  # screen off
     await player.set_display_config(auto_sense_enable=0, default_bright=100, disable=0)  # full control; disable: 0=on, 1=off
+    config = await player.get_display_config()  # {"enabled": bool, "brightness": int | None} or None
+    player.display_on          # bool | None — cached; also updated on refresh() ~60s
+    player.display_brightness  # int | None — configured default_bright, 1–100
 ```
 
-Constants: `DISPLAY_BRIGHTNESS_MIN`, `DISPLAY_BRIGHTNESS_MAX`, `DISPLAY_DEFAULT_BRIGHTNESS` in `pywiim.api.constants`. No getter: display state is not in device status; track it in the integration if needed.
+Constants: `DISPLAY_BRIGHTNESS_MIN`, `DISPLAY_BRIGHTNESS_MAX`, `DISPLAY_DEFAULT_BRIGHTNESS` in `pywiim.api.constants`. Brightness here is the configured level, not the live adaptive-brightness value.
 
 ### Home Assistant: "does not report a color mode"
 

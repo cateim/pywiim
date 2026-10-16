@@ -746,7 +746,14 @@ class DeviceDiagnostics:
         try:
             if not self.client.capabilities.get("supports_display_config", False):
                 return {"supported": False, "reason": "Display not supported on this model"}
-            return {"supported": True, "note": "set_display_enabled / set_display_config available"}
+            config = await self.client.get_display_config()
+            if not config:
+                return {"supported": True, "state": "unknown"}
+            return {
+                "supported": True,
+                "state": "on" if config["enabled"] else "off",
+                "brightness": config.get("brightness"),
+            }
         except Exception as err:
             return {"supported": False, "error": str(err)}
 
@@ -999,9 +1006,15 @@ class DeviceDiagnostics:
 
         # Display (WiiM Ultra)
         try:
-            self.report["display"] = {
-                "supported": bool(self.client.capabilities.get("supports_display_config", False)),
-            }
+            if self.client.capabilities.get("supports_display_config", False):
+                config = await self.client.get_display_config()
+                self.report["display"] = {
+                    "supported": True,
+                    "state": None if not config else ("on" if config["enabled"] else "off"),
+                    "brightness": None if not config else config.get("brightness"),
+                }
+            else:
+                self.report["display"] = {"supported": False}
         except Exception:
             self.report["display"] = {"supported": False}
 

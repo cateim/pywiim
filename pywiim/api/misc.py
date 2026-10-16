@@ -28,6 +28,7 @@ from .constants import (
     API_ENDPOINT_GET_ALL_ROUTINES,
     API_ENDPOINT_GET_AUDIO_INPUT_CAPABILITY,
     API_ENDPOINT_GET_AUDIO_INPUT_ENABLE,
+    API_ENDPOINT_GET_DISPLAY_CONFIG,
     API_ENDPOINT_GET_LED_MCU,
     API_ENDPOINT_GET_LED_SWITCH,
     API_ENDPOINT_GET_MODE_RENAME,
@@ -35,6 +36,8 @@ from .constants import (
     API_ENDPOINT_SET_LED,
     API_ENDPOINT_TRIGGER_OUT_SET,
     API_ENDPOINT_TRIGGER_OUT_STATUS,
+    DISPLAY_BRIGHTNESS_MAX,
+    DISPLAY_BRIGHTNESS_MIN,
     DISPLAY_DEFAULT_BRIGHTNESS,
 )
 
@@ -316,8 +319,61 @@ class MiscAPI:
         await self._request(f"{API_ENDPOINT_SET_LED}{value}")  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
-    # Display / LCD (WiiM Ultra)
+    # Display / LCD (WiiM Ultra and WiiM Sound)
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_display_config(parsed: Any) -> dict[str, Any] | None:
+        """Parse getLightOperationBrightConfig. None when the body is not that config."""
+        data: Any = parsed
+        if isinstance(parsed, str):
+            text = parsed.strip()
+            if not text.startswith("{"):
+                return None
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError:
+                return None
+        if isinstance(data, dict) and "disable" not in data and isinstance(data.get("body"), dict):
+            data = data["body"]
+        if not isinstance(data, dict) or "disable" not in data:
+            return None
+        try:
+            disable = int(data["disable"])
+        except (TypeError, ValueError):
+            return None
+        if disable not in (0, 1):
+            return None
+        brightness: int | None = None
+        if data.get("default_bright") is not None:
+            try:
+                level = int(data["default_bright"])
+            except (TypeError, ValueError):
+                level = None
+            if level is not None and DISPLAY_BRIGHTNESS_MIN <= level <= DISPLAY_BRIGHTNESS_MAX:
+                brightness = level
+        return {"enabled": disable == 0, "brightness": brightness}
+
+    async def get_display_config(self) -> dict[str, Any] | None:
+        """Read LCD power and configured brightness. Does not change the screen.
+
+        Uses ``getLightOperationBrightConfig`` (the read paired with
+        ``setLightOperationBrightConfig``). ``disable`` 0 is on and 1 is off.
+        ``brightness`` is ``default_bright`` on the 1–100 scale, or None when
+        the device omits it. Returns None when the endpoint is missing or the
+        body is not this config — callers keep the previous cache.
+
+        Returns:
+            ``{"enabled": bool, "brightness": int | None}`` or None.
+        """
+        try:
+            result = await self._request(API_ENDPOINT_GET_DISPLAY_CONFIG)  # type: ignore[attr-defined]
+        except WiiMError:
+            return None
+        parsed = getattr(result, "parsed", None)
+        if parsed is None:
+            parsed = getattr(result, "raw", None)
+        return self._parse_display_config(parsed)
 
     async def set_display_config(
         self,

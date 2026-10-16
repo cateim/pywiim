@@ -25,7 +25,7 @@ We expose **two distinct capability areas** and **player-level methods** that mi
 ### 2. Display (on/off, optional brightness)
 - **Capability**: `supports_display_config` — True for WiiM Ultra-family devices and WiiM Sound (model-based; not Sound Lite); no probe that changes screen state.
 - **Control**: `setLightOperationBrightConfig` via `set_display_config` / `set_display_enabled` on client; **player** exposes `set_display_enabled(enabled)` and `set_display_config(...)` that delegate to client (same pattern as subwoofer).
-- **Read**: Only when device includes `light_operation_bright_config` in status (e.g. future Ultra support); otherwise shadow state.
+- **Read**: `getLightOperationBrightConfig` (read-only; same `disable` / `default_bright` fields as the set command). Polled on the configuration tier when `supports_display_config` is true. A missing or unreadable response leaves the cache unchanged. `getStatusEx` does not carry this state.
 
 ### 3. Implementation rules
 - **Player methods**: LED Indicator → `set_led_indicator(enabled)`. Display → `set_display_enabled(enabled)`, `set_display_config(...)`. Both delegate to client; no duplicate logic on player.
