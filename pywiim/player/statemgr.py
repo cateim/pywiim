@@ -1138,6 +1138,27 @@ class StateManager:
             except Exception as err:
                 _LOGGER.debug("Failed to fetch display status for %s: %s", self.player.host, err)
 
+        # DAC digital filter. Names are fetched once; the current index uses the 60s tier.
+        filter_supported = bool(self.player.client.capabilities.get("supports_digital_filter", False))
+        should_fetch_filter = full or (
+            self._polling_strategy
+            and self._polling_strategy.should_fetch_led_indicator(
+                self.player._last_digital_filter_check, filter_supported, now=now
+            )
+        )
+        if should_fetch_filter and filter_supported:
+            try:
+                if not self.player._digital_filters:
+                    types = await self.player.client.get_digital_filter_types()
+                    if types:
+                        self.player._digital_filters = types
+                index = await self.player.client.get_digital_filter_index()
+                if index is not None:
+                    self.player._digital_filter_index = index
+                self.player._last_digital_filter_check = now
+            except Exception as err:
+                _LOGGER.debug("Failed to fetch DAC digital filter for %s: %s", self.player.host, err)
+
     async def _finalize_refresh(self, track_changed: bool) -> None:
         """Finalize refresh: sync group state, enrich metadata, propagate, notify.
 

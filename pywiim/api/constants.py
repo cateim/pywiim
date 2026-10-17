@@ -383,6 +383,11 @@ API_ENDPOINT_SET_SPDIF_SWITCH_DELAY = "/httpapi.asp?command=setSpdifOutSwitchDel
 API_ENDPOINT_GET_CHANNEL_BALANCE = "/httpapi.asp?command=getChannelBalance"
 API_ENDPOINT_SET_CHANNEL_BALANCE = "/httpapi.asp?command=setChannelBalance:"
 API_ENDPOINT_GET_SOUND_CARD_MODE_SUPPORT_LIST = "/httpapi.asp?command=getSoundCardModeSupportList"
+# DAC digital filter (analog line out). Index is 1-based. supportDigitalFilter on the
+# sound-card list is not a reliable gate — Pro Plus omits it.
+API_ENDPOINT_GET_DIGITAL_FILTER_TYPES = "/httpapi.asp?command=getDigitalFilterTypeSupportList"
+API_ENDPOINT_GET_DIGITAL_FILTER_TYPE = "/httpapi.asp?command=getDigitalFilterType"
+API_ENDPOINT_SET_DIGITAL_FILTER_TYPE = "/httpapi.asp?command=setDigitalFilterType:"
 
 # Miscellaneous endpoints
 API_ENDPOINT_SET_LED = "/httpapi.asp?command=LED_SWITCH_SET:"

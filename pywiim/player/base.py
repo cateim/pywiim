@@ -7,6 +7,7 @@ import weakref
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from ..api.misc import DigitalFilter
 from ..client import WiiMClient
 from ..model_names import to_friendly_model_name
 from ..models import DeviceInfo, PlayerStatus
@@ -136,6 +137,11 @@ class PlayerBase:
         # Stereo channel balance (-1.0 … 1.0); WiiM HTTP only, gated by supports_channel_balance
         self._channel_balance: float | None = None
         self._last_channel_balance_check: float = 0
+
+        # DAC digital filter names (fetched once) and current 1-based index (60s tier).
+        self._digital_filters: list[DigitalFilter] = []
+        self._digital_filter_index: int | None = None
+        self._last_digital_filter_check: float = 0
 
         # UPnP health tracking (only if UPnP client is provided)
         self._upnp_health_tracker: UpnpHealthTracker | None = None

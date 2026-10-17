@@ -799,6 +799,10 @@ player.supports_led_control       # bool - True if primary LED control (setLED/s
 player.supports_led_switch        # bool - True if Status Light (LED_SWITCH_SET) is supported
 player.supports_led_indicator     # bool - True if LED indicator on/off is supported (ADR 005; Arylic + WiiM)
 player.supports_display_config    # bool - True if display/LCD on-off and brightness is supported (WiiM Ultra and WiiM Sound)
+player.supports_digital_filter    # bool - True if getDigitalFilterTypeSupportList returned filter names
+player.digital_filter_types       # list[str] - cached DAC filter names
+player.digital_filter             # str | None - cached current DAC filter name
+# await player.set_digital_filter(name)  # name from digital_filter_types; analog line out only
 ```
 
 **UPnP Capabilities** (depend on UPnP client initialization):

@@ -525,6 +525,48 @@ class TestWiiMCapabilitiesClass:
         assert capabilities.get("loop_mode_scheme") == "wiim"
 
     @pytest.mark.asyncio
+    async def test_detect_capabilities_digital_filter_from_support_list(self, mock_client):
+        """A non-empty getDigitalFilterTypeSupportList sets supports_digital_filter."""
+        device_info = DeviceInfo(uuid="test-uuid", model="WiiM Pro Plus", firmware="4.8.827634")
+        mock_client.get_status = AsyncMock(return_value={"status": "ok"})
+
+        async def _request(endpoint, *args, **kwargs):
+            if "getDigitalFilterTypeSupportList" in str(endpoint):
+                return ApiResponse(
+                    parsed=[{"index": 1, "value": "Sharp Roll-Off Filter"}],
+                    raw=None,
+                )
+            return ApiResponse(parsed={"status": "ok"}, raw=None)
+
+        mock_client._request = AsyncMock(side_effect=_request)
+
+        detector = WiiMCapabilities()
+        capabilities = await detector.detect_capabilities(mock_client, device_info)
+
+        assert capabilities["supports_digital_filter"] is True
+
+    @pytest.mark.asyncio
+    async def test_detect_capabilities_digital_filter_unknown_command(self, mock_client):
+        """unknown command and request failures leave the filter unsupported."""
+        device_info = DeviceInfo(uuid="test-uuid", model="WiiM Pro", firmware="4.8.1")
+        mock_client.get_status = AsyncMock(return_value={"status": "ok"})
+        mock_client._request = AsyncMock(return_value=ApiResponse(parsed=None, raw="unknown command"))
+
+        detector = WiiMCapabilities()
+        capabilities = await detector.detect_capabilities(mock_client, device_info)
+        assert capabilities["supports_digital_filter"] is False
+
+        async def _request(endpoint, *args, **kwargs):
+            if "getDigitalFilterTypeSupportList" in str(endpoint):
+                raise WiiMError("failed")
+            return ApiResponse(parsed={"status": "ok"}, raw=None)
+
+        mock_client._request = AsyncMock(side_effect=_request)
+        detector.clear_cache()
+        capabilities = await detector.detect_capabilities(mock_client, device_info, force=True)
+        assert capabilities["supports_digital_filter"] is False
+
+    @pytest.mark.asyncio
     async def test_detect_capabilities_wiim_ultra_fw52_loop_mode_scheme_arylic(self, mock_client):
         """Merged capabilities include profile loop_mode_scheme (Ultra 5.2+ → arylic, pywiim#17)."""
         device_info = DeviceInfo(uuid="test-uuid", model="wiim_ultra", firmware="5.2.813259")

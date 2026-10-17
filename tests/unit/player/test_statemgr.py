@@ -630,6 +630,51 @@ class TestStateManager:
         mock_player.get_led_indicator.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_refresh_fetches_digital_filter_on_full(self, state_manager, mock_player):
+        """Full refresh loads the filter list once and the current index."""
+        from pywiim.api.misc import DigitalFilter
+
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_digital_filter": True})
+        mock_player.client.get_digital_filter_types = AsyncMock(
+            return_value=[DigitalFilter(1, "Sharp Roll-Off Filter"), DigitalFilter(2, "Slow Roll-Off Filter")]
+        )
+        mock_player.client.get_digital_filter_index = AsyncMock(return_value=2)
+        mock_player._digital_filters = []
+        mock_player._digital_filter_index = None
+        mock_player._last_digital_filter_check = 0
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        mock_player.client.get_digital_filter_types.assert_called_once()
+        mock_player.client.get_digital_filter_index.assert_called_once()
+        assert mock_player.digital_filter == "Slow Roll-Off Filter"
+        assert mock_player._last_digital_filter_check != 0
+
+    @pytest.mark.asyncio
+    async def test_refresh_skips_digital_filter_when_unsupported(self, state_manager, mock_player):
+        """Refresh does not read the filter when the support list was empty."""
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_digital_filter": False})
+        mock_player.client.get_digital_filter_types = AsyncMock()
+        mock_player.client.get_digital_filter_index = AsyncMock()
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        mock_player.client.get_digital_filter_types.assert_not_called()
+        mock_player.client.get_digital_filter_index.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_refresh_fetches_display_on_full(self, state_manager, mock_player):
         """Test full refresh reads the LCD when supports_display_config."""
         mock_status = PlayerStatus(play_state="pause")

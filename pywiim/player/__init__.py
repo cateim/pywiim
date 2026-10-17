@@ -10,8 +10,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal
 
 from ..api.constants import DISPLAY_DEFAULT_BRIGHTNESS
+from ..api.misc import select_digital_filter
 from ..api.subwoofer import SubwooferStatus
 from ..client import WiiMClient
+from ..exceptions import WiiMError
 from ..models import DeviceInfo, PlayerStatus
 from .audio import AudioConfiguration
 from .base import PlayerBase
@@ -380,6 +382,27 @@ class Player(PlayerBase):
         """Set LED indicator on or off (LED_SWITCH_SET)."""
         await self.client.set_led_switch(enabled)
         self._led_indicator_on = enabled
+        if self._on_state_changed:
+            self._on_state_changed()
+
+    async def set_digital_filter(self, name: str) -> None:
+        """Set the DAC digital filter by the name from ``digital_filter_types``.
+
+        Raises:
+            WiiMError: If the device has no filter list or ``name`` is not in it.
+        """
+        if not self.supports_digital_filter:
+            raise WiiMError("Digital filter is not supported")
+        filters = list(self._digital_filters)
+        if not filters:
+            filters = await self.client.get_digital_filter_types()
+            if filters:
+                self._digital_filters = filters
+        chosen = select_digital_filter(filters, name)
+        if chosen is None:
+            raise WiiMError(f"Unknown digital filter {name!r}")
+        await self.client.set_digital_filter_index(chosen.index)
+        self._digital_filter_index = chosen.index
         if self._on_state_changed:
             self._on_state_changed()
 
@@ -1323,6 +1346,21 @@ class Player(PlayerBase):
         return self._led_indicator_on
 
     @property
+    def digital_filter_types(self) -> list[str]:
+        """Cached DAC filter names, in device index order."""
+        return [item.name for item in self._digital_filters]
+
+    @property
+    def digital_filter(self) -> str | None:
+        """Cached DAC filter name, or None if the current index is unknown."""
+        if self._digital_filter_index is None:
+            return None
+        for item in self._digital_filters:
+            if item.index == self._digital_filter_index:
+                return item.name
+        return None
+
+    @property
     def display_on(self) -> bool | None:
         """Cached LCD power (True=on, False=off, None=not read yet).
 
@@ -1447,6 +1485,13 @@ class Player(PlayerBase):
     def supports_display_config(self) -> bool:
         """Whether display/LCD on-off and brightness is supported (WiiM Ultra and WiiM Sound)."""
         return self._properties.supports_display_config
+
+    @property
+    def supports_digital_filter(self) -> bool:
+        """Whether the DAC digital filter list was non-empty at capability detection."""
+        if not self.client:
+            return False
+        return bool(self.client.capabilities.get("supports_digital_filter", False))
 
     # === UPnP Capabilities ===
 

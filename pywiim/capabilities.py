@@ -36,10 +36,12 @@ from .api.constants import (
     API_ENDPOINT_EQ_LIST,
     API_ENDPOINT_EQ_STATUS,
     API_ENDPOINT_GET_CHANNEL_BALANCE,
+    API_ENDPOINT_GET_DIGITAL_FILTER_TYPES,
     API_ENDPOINT_PEQ_GET_LIST,
     API_ENDPOINT_SUBWOOFER_STATUS,
     PEQ_PLUGIN_URI,
 )
+from .api.misc import parse_digital_filter_types
 from .api.subwoofer import is_valid_subwoofer_lpf_dict
 from .exceptions import WiiMError
 from .model_names import is_known_wiim_model, is_wiim_12v_trigger_model, is_wiim_display_model
@@ -294,6 +296,7 @@ class WiiMCapabilities:
         capabilities.setdefault("supports_trigger_out", False)
         capabilities.setdefault("supports_led_switch", False)
         capabilities.setdefault("supports_display_config", False)
+        capabilities.setdefault("supports_digital_filter", False)
 
         # LED Indicator (ADR 005): Arylic — set by vendor, try-and-ignore on write; no probe
         if capabilities.get("vendor") == "arylic":
@@ -503,6 +506,18 @@ class WiiMCapabilities:
                     )
             except WiiMError:
                 _LOGGER.debug("Device %s does not support channel balance (getChannelBalance failed)", client.host)
+
+        # DAC digital filter. supportDigitalFilter on getSoundCardModeSupportList is not
+        # reliable (WiiM Pro Plus omits it). A non-empty support list is the gate.
+        try:
+            filter_result = await client._request(API_ENDPOINT_GET_DIGITAL_FILTER_TYPES)
+            if parse_digital_filter_types(filter_result.parsed, filter_result.raw):
+                capabilities["supports_digital_filter"] = True
+                _LOGGER.debug("Device %s supports DAC digital filter", client.host)
+            else:
+                _LOGGER.debug("Device %s does not support DAC digital filter", client.host)
+        except WiiMError:
+            _LOGGER.debug("Device %s does not support DAC digital filter (request failed)", client.host)
 
         # Probe for WiiM LV2 PEQ support (read-only probe)
         # PEQ is a WiiM-specific feature not available on Audio Pro, Arylic, or generic

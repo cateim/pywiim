@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
 
@@ -28,11 +29,14 @@ from .constants import (
     API_ENDPOINT_GET_ALL_ROUTINES,
     API_ENDPOINT_GET_AUDIO_INPUT_CAPABILITY,
     API_ENDPOINT_GET_AUDIO_INPUT_ENABLE,
+    API_ENDPOINT_GET_DIGITAL_FILTER_TYPE,
+    API_ENDPOINT_GET_DIGITAL_FILTER_TYPES,
     API_ENDPOINT_GET_DISPLAY_CONFIG,
     API_ENDPOINT_GET_LED_MCU,
     API_ENDPOINT_GET_LED_SWITCH,
     API_ENDPOINT_GET_MODE_RENAME,
     API_ENDPOINT_SET_BUTTONS,
+    API_ENDPOINT_SET_DIGITAL_FILTER_TYPE,
     API_ENDPOINT_SET_LED,
     API_ENDPOINT_TRIGGER_OUT_SET,
     API_ENDPOINT_TRIGGER_OUT_STATUS,
@@ -55,6 +59,84 @@ def _is_unsupported_discovered_payload(payload: dict[str, Any]) -> bool:
     if error in {"unsupported_command", "unknown command", "fail", "failed"}:
         return True
     return state == -1 and bool(error)
+
+
+@dataclass(frozen=True)
+class DigitalFilter:
+    """One DAC filter choice. ``index`` is the 1-based value ``setDigitalFilterType`` accepts."""
+
+    index: int
+    name: str
+
+
+def _digital_filter_index(value: Any) -> int | None:
+    """Return a 1-based filter index, or None."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        index = value
+    elif isinstance(value, float) and value.is_integer():
+        index = int(value)
+    elif isinstance(value, str) and value.strip().isdigit():
+        index = int(value.strip())
+    else:
+        return None
+    if index < 1:
+        return None
+    return index
+
+
+def parse_digital_filter_types(parsed: Any, raw: str | None = None) -> list[DigitalFilter]:
+    """Parse ``getDigitalFilterTypeSupportList``.
+
+    The firmware returns a bare JSON array of ``{index, value, args}``. Anything else,
+    including an error object, ``unknown command``, or ``no parameters``, is an empty list.
+    A bare ``getDigitalFilterType`` index is not support. ``args`` is ignored.
+    """
+    data = parsed
+    if data is None and raw:
+        data = raw
+    if isinstance(data, str):
+        text = data.strip()
+        if not text.startswith("["):
+            return []
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return []
+    if not isinstance(data, list):
+        return []
+
+    filters: list[DigitalFilter] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        index = _digital_filter_index(item.get("index"))
+        name = item.get("value")
+        if index is None or not isinstance(name, str) or not name.strip():
+            continue
+        filters.append(DigitalFilter(index=index, name=name.strip()))
+    return filters
+
+
+def parse_digital_filter_index(parsed: Any, raw: str | None = None) -> int | None:
+    """Parse ``getDigitalFilterType`` (bare 1-based index)."""
+    index = _digital_filter_index(parsed)
+    if index is not None:
+        return index
+    return _digital_filter_index(raw)
+
+
+def select_digital_filter(filters: list[DigitalFilter], name: str) -> DigitalFilter | None:
+    """Match a filter name. Exact match wins; otherwise one case-insensitive match."""
+    exact = [item for item in filters if item.name == name]
+    if len(exact) == 1:
+        return exact[0]
+    folded = name.casefold()
+    matches = [item for item in filters if item.name.casefold() == folded]
+    if len(matches) == 1:
+        return matches[0]
+    return None
 
 
 class MiscAPI:
@@ -482,6 +564,34 @@ class MiscAPI:
             pass
 
         return capabilities
+
+    # ------------------------------------------------------------------
+    # DAC digital filter (analog line out)
+    # ------------------------------------------------------------------
+
+    async def get_digital_filter_types(self) -> list[DigitalFilter]:
+        """Return DAC filter choices from ``getDigitalFilterTypeSupportList``.
+
+        An empty list means the device did not return a usable filter list.
+        Transport failures raise ``WiiMError``.
+        """
+        result = await self._request(API_ENDPOINT_GET_DIGITAL_FILTER_TYPES)  # type: ignore[attr-defined]
+        return parse_digital_filter_types(result.parsed, result.raw)
+
+    async def get_digital_filter_index(self) -> int | None:
+        """Return the current 1-based DAC filter index, or None if unreadable."""
+        result = await self._request(API_ENDPOINT_GET_DIGITAL_FILTER_TYPE)  # type: ignore[attr-defined]
+        return parse_digital_filter_index(result.parsed, result.raw)
+
+    async def set_digital_filter_index(self, index: int) -> None:
+        """Set the DAC filter by 1-based index from the support list.
+
+        Raises:
+            WiiMError: If ``index`` is below 1 or the request fails.
+        """
+        if isinstance(index, bool) or not isinstance(index, int) or index < 1:
+            raise WiiMError(f"Digital filter index must be a positive integer, got {index!r}")
+        await self._request(f"{API_ENDPOINT_SET_DIGITAL_FILTER_TYPE}{index}")  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     # Helper methods

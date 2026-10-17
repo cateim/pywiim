@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.13] - 2026-10-17
+
+### Added
+- **DAC digital filter** ([wiim #282](https://github.com/mjcumming/wiim/issues/282)) — `getDigitalFilterTypeSupportList` is probed at capability detection. A non-empty list sets `supports_digital_filter`. `Player.digital_filter_types` caches the names (fetched once) and `Player.digital_filter` caches the current name, refreshed about every 60 seconds. `set_digital_filter(name)` writes `setDigitalFilterType` using the list's 1-based index. `supportDigitalFilter` on the sound-card list is not the gate. `wiim-diagnostics` prints the list and current filter without changing it. WiiM Pro (`Linkplay.4.8.827634`) returns `no parameters` for the support list and is left unsupported; `getDigitalFilterType` still returns a bare index on that model, so the index alone is not a capability.
+
 ## [2.3.12] - 2026-10-16
 
 ### Added

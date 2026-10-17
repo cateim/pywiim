@@ -5523,6 +5523,44 @@ class TestPlayerLEDIndicatorAndDisplay:
         assert player2.supports_led_indicator is False
 
     @pytest.mark.asyncio
+    async def test_set_digital_filter_updates_cache(self, mock_client):
+        """set_digital_filter writes the matching 1-based index and caches the name."""
+        from pywiim.api.misc import DigitalFilter
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_digital_filter": True})
+        mock_client.set_digital_filter_index = AsyncMock()
+        player = Player(mock_client)
+        player._digital_filters = [DigitalFilter(1, "Sharp Roll-Off Filter"), DigitalFilter(2, "Slow Roll-Off Filter")]
+        callback = MagicMock()
+        player._on_state_changed = callback
+
+        await player.set_digital_filter("slow roll-off filter")
+
+        mock_client.set_digital_filter_index.assert_called_once_with(2)
+        assert player.digital_filter == "Slow Roll-Off Filter"
+        callback.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_set_digital_filter_rejects_unknown_and_unsupported(self, mock_client):
+        """Unknown names and unsupported devices do not send a set command."""
+        from pywiim.api.misc import DigitalFilter
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_digital_filter": False})
+        mock_client.set_digital_filter_index = AsyncMock()
+        player = Player(mock_client)
+        with pytest.raises(WiiMError):
+            await player.set_digital_filter("Sharp Roll-Off Filter")
+        mock_client.set_digital_filter_index.assert_not_called()
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_digital_filter": True})
+        player._digital_filters = [DigitalFilter(1, "Sharp Roll-Off Filter")]
+        with pytest.raises(WiiMError):
+            await player.set_digital_filter("Nope")
+        mock_client.set_digital_filter_index.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_set_display_enabled_delegates_to_client(self, mock_client):
         """Test set_display_enabled delegates to client.set_display_enabled."""
         from pywiim.player import Player

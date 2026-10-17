@@ -708,3 +708,90 @@ class TestMiscAPI:
         assert client._last_trigger is True
         await client.set_trigger_out_off()
         assert client._last_trigger is False
+
+
+PRO_PLUS_FILTERS = [
+    {"index": 1, "args": ["amixer cset name='AK2 DigiFilt' 0"], "value": "Sharp Roll-Off Filter"},
+    {"index": 2, "args": ["amixer cset name='AK2 DigiFilt' 1"], "value": "Slow Roll-Off Filter"},
+    {"index": 6, "args": ["amixer cset name='AK2 DigiFilt' 5"], "value": "Low Dispersion Short Delay Filter"},
+]
+
+
+class TestDigitalFilter:
+    """DAC digital filter parsing and client commands."""
+
+    def test_parse_support_list(self):
+        """Bare JSON array becomes names; amixer args are ignored."""
+        from pywiim.api.misc import parse_digital_filter_types
+
+        filters = parse_digital_filter_types(PRO_PLUS_FILTERS, None)
+        assert [item.index for item in filters] == [1, 2, 6]
+        assert filters[0].name == "Sharp Roll-Off Filter"
+        assert filters[2].name == "Low Dispersion Short Delay Filter"
+
+    def test_parse_support_list_rejects_non_lists(self):
+        """Error objects, unknown-command text, and empty lists are unsupported."""
+        from pywiim.api.misc import parse_digital_filter_types
+
+        assert parse_digital_filter_types({"error": "unknown command"}, None) == []
+        assert parse_digital_filter_types(None, "unknown command") == []
+        assert parse_digital_filter_types(None, "no parameters") == []
+        assert parse_digital_filter_types([], None) == []
+        assert parse_digital_filter_types([{"index": 0, "value": "Nope"}, {"value": "Missing"}], None) == []
+
+    def test_parse_index(self):
+        """Current filter is a bare 1-based index."""
+        from pywiim.api.misc import parse_digital_filter_index
+
+        assert parse_digital_filter_index(1, None) == 1
+        assert parse_digital_filter_index("2", None) == 2
+        assert parse_digital_filter_index(None, "3") == 3
+        assert parse_digital_filter_index(None, "unknown command") is None
+        assert parse_digital_filter_index(0, None) is None
+
+    def test_select_name(self):
+        """Exact name wins; a single case-insensitive match is accepted."""
+        from pywiim.api.misc import DigitalFilter, select_digital_filter
+
+        filters = [DigitalFilter(1, "Sharp Roll-Off Filter"), DigitalFilter(2, "Slow Roll-Off Filter")]
+        assert select_digital_filter(filters, "Slow Roll-Off Filter").index == 2
+        assert select_digital_filter(filters, "sharp roll-off filter").index == 1
+        assert select_digital_filter(filters, "missing") is None
+
+    @pytest.mark.asyncio
+    async def test_client_get_and_set(self):
+        """Client methods use the digital-filter commands and the 1-based index."""
+        from pywiim.api.constants import (
+            API_ENDPOINT_GET_DIGITAL_FILTER_TYPE,
+            API_ENDPOINT_GET_DIGITAL_FILTER_TYPES,
+            API_ENDPOINT_SET_DIGITAL_FILTER_TYPE,
+        )
+        from pywiim.api.misc import MiscAPI
+
+        requests = []
+
+        class TestClient(MiscAPI):
+            async def _request(self, endpoint):
+                requests.append(endpoint)
+                if endpoint == API_ENDPOINT_GET_DIGITAL_FILTER_TYPES:
+                    return ApiResponse(parsed=PRO_PLUS_FILTERS, raw=None)
+                if endpoint == API_ENDPOINT_GET_DIGITAL_FILTER_TYPE:
+                    return ApiResponse(parsed=2, raw=None)
+                return ApiResponse(parsed=None, raw="OK")
+
+        client = TestClient()
+        types = await client.get_digital_filter_types()
+        assert [item.name for item in types] == [
+            "Sharp Roll-Off Filter",
+            "Slow Roll-Off Filter",
+            "Low Dispersion Short Delay Filter",
+        ]
+        assert await client.get_digital_filter_index() == 2
+        await client.set_digital_filter_index(2)
+        with pytest.raises(WiiMError):
+            await client.set_digital_filter_index(0)
+        assert requests == [
+            API_ENDPOINT_GET_DIGITAL_FILTER_TYPES,
+            API_ENDPOINT_GET_DIGITAL_FILTER_TYPE,
+            f"{API_ENDPOINT_SET_DIGITAL_FILTER_TYPE}2",
+        ]

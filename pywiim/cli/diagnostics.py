@@ -20,6 +20,8 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
 
+from ..api.constants import API_ENDPOINT_GET_DIGITAL_FILTER_TYPES
+from ..api.misc import parse_digital_filter_types
 from ..client import WiiMClient
 from ..exceptions import WiiMError
 
@@ -289,6 +291,7 @@ class DeviceDiagnostics:
             ("Subwoofer", self._test_subwoofer),
             ("12V Trigger", self._test_trigger_out),
             ("LED Indicator", self._test_led_indicator),
+            ("DAC Digital Filter", self._test_digital_filter),
             ("Display", self._test_display),
             ("PEQ (Advanced EQ)", self._test_peq),
             ("Graphic EQ", self._test_graphic_eq),
@@ -303,6 +306,16 @@ class DeviceDiagnostics:
                 self.report["features"][name] = result
                 status = "supported" if result.get("supported") else "not supported"
                 print(f"   ✓ {name}: {status}")
+                if name == "DAC Digital Filter":
+                    if result.get("supported"):
+                        print(f"      Current: {result.get('current')} (index {result.get('current_index')})")
+                        for filt in result.get("filters") or []:
+                            marker = " ← current" if filt == result.get("current") else ""
+                            print(f"         - {filt}{marker}")
+                    else:
+                        detail = result.get("response") or result.get("error") or result.get("reason")
+                        if detail:
+                            print(f"      {detail}")
 
                 # Special handling for source selection to show ALL sources
                 if name == "Source Selection" and result.get("supported"):
@@ -731,6 +744,34 @@ class DeviceDiagnostics:
         except Exception as err:
             return {"supported": False, "error": str(err)}
 
+    async def _test_digital_filter(self) -> dict[str, Any]:
+        """Read the DAC digital filter list and current selection. Does not change it."""
+        try:
+            result = await self.client._request(API_ENDPOINT_GET_DIGITAL_FILTER_TYPES)
+        except Exception as err:
+            return {"supported": False, "error": str(err)}
+        filters = parse_digital_filter_types(result.parsed, result.raw)
+        if not filters:
+            preview = result.raw if result.raw is not None else result.parsed
+            return {"supported": False, "reason": "no filter list", "response": str(preview)[:180]}
+        try:
+            current_index = await self.client.get_digital_filter_index()
+        except Exception as err:
+            return {
+                "supported": True,
+                "filters": [item.name for item in filters],
+                "current_index": None,
+                "current": None,
+                "error": str(err),
+            }
+        current = next((item.name for item in filters if item.index == current_index), None)
+        return {
+            "supported": True,
+            "current": current,
+            "current_index": current_index,
+            "filters": [item.name for item in filters],
+        }
+
     async def _test_led_indicator(self) -> dict[str, Any]:
         """Test LED indicator (ADR 005; Arylic + WiiM). Read returns on/off or assume on."""
         try:
@@ -993,6 +1034,12 @@ class DeviceDiagnostics:
                 self.report["trigger_out"] = {"supported": False}
         except Exception:
             self.report["trigger_out"] = {"supported": False}
+
+        # DAC digital filter (read-only)
+        try:
+            self.report["digital_filter"] = await self._test_digital_filter()
+        except Exception:
+            self.report["digital_filter"] = {"supported": False}
 
         # LED Indicator (ADR 005)
         try:
