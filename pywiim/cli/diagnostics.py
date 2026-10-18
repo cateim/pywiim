@@ -318,9 +318,9 @@ class DeviceDiagnostics:
                             print(f"      {detail}")
                 elif name == "Room Correction":
                     if result.get("supported"):
-                        state = "on" if result.get("enabled") else "off"
+                        room_state = "on" if result.get("enabled") else "off"
                         current = result.get("name") or "none"
-                        print(f"      {state}, current: {current}")
+                        print(f"      {room_state}, current: {current}")
                         profiles = result.get("profiles") or []
                         if profiles:
                             for profile in profiles:
