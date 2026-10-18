@@ -475,9 +475,9 @@ PEQ_PLUGIN_URI = "http://moddevices.com/plugins/caps/EqNp"
 # GEQ plugin URI (Graphic 10-band Equalizer)
 GEQ_PLUGIN_URI = "http://moddevices.com/plugins/caps/Eq10HP"
 
-# Room correction read endpoint. Uses the PEQ-shaped EqNp LV2 payload, but it is
-# a distinct device-side correction block rather than the user PEQ preset.
-API_ENDPOINT_ROOM_CORRECTION_GET = "/httpapi.asp?command=RoomCorrGet"
+# RoomFit (room correction) is the EqNp plugin at EQLevel 2, not the user PEQ
+# at EQLevel 1. RoomCorrGet reports EQStat Off while RoomFit is on.
+ROOM_CORRECTION_EQ_LEVEL = 2
 
 # PEQ band letters (10 active bands: a-j; k-l exist but default to Off)
 PEQ_BAND_LETTERS = ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")

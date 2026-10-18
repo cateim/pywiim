@@ -51,7 +51,7 @@ These are **GET**-style URLs (read-only). Good for baselines before/after you ch
 | `GetAcousticCapability` | WiiM acoustic capability blocks (GEQ/PEQ/RC/output delay/etc.). |
 | `getAllRoutines` | WiiM routines (device-side action sequences, not playback presets). |
 | `getSoundCardModeSupportList` | WiiM output sound-card support list; key by `mode`, not `index`. |
-| `RoomCorrGet` | WiiM room-correction state; read-only in pywiim. |
+| `EQGetLV2SourceBandEx` at EQLevel 2 | RoomFit on/off and the active profile. `RoomCorrGet` reports the switch as off. |
 | `EQv2GetList:http://moddevices.com/plugins/caps/Eq10HP` | WiiM graphic EQ preset names. |
 
 Examples:
@@ -79,7 +79,8 @@ curl -ks "https://${DEVICE}:443/httpapi.asp?command=getAllRoutines" | python3 -m
 curl -ks "https://${DEVICE}:443/httpapi.asp?command=getSoundCardModeSupportList" | python3 -m json.tool
 
 # Daily-use EQ research endpoints (read-only)
-curl -ks "https://${DEVICE}:443/httpapi.asp?command=RoomCorrGet" | python3 -m json.tool
+# RoomFit state. RoomCorrGet reports EQStat off while RoomFit is on.
+curl -ks --get "https://${DEVICE}:443/httpapi.asp" --data-urlencode "command=EQGetLV2SourceBandEx:{\"EQLevel\":2,\"source_name\":\"\",\"pluginURI\":\"http://moddevices.com/plugins/caps/EqNp\"}" | python3 -m json.tool
 curl -ks "https://${DEVICE}:443/httpapi.asp?command=EQv2GetList:http://moddevices.com/plugins/caps/Eq10HP" | python3 -m json.tool
 ```
 

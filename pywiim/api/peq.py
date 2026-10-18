@@ -59,7 +59,6 @@ from .constants import (
     API_ENDPOINT_PEQ_SOURCE_LOAD,
     API_ENDPOINT_PEQ_SOURCE_OFF,
     API_ENDPOINT_PEQ_SOURCE_SAVE,
-    API_ENDPOINT_ROOM_CORRECTION_GET,
     GEQ_PLUGIN_URI,
     PEQ_BAND_LETTERS,
     PEQ_CHANNEL_MODE_LR,
@@ -79,6 +78,7 @@ from .constants import (
     PEQ_PLUGIN_URI,
     PEQ_Q_MAX,
     PEQ_Q_MIN,
+    ROOM_CORRECTION_EQ_LEVEL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ class GraphicEQSettings:
 
 @dataclass
 class RoomCorrectionSettings:
-    """Read-only room-correction settings from ``RoomCorrGet``."""
+    """RoomFit state from ``EQGetLV2SourceBandEx`` at EQLevel 2."""
 
     source_name: str = ""
     enabled: bool = False
@@ -304,7 +304,7 @@ def _parse_graphic_eq_settings(raw: dict[str, Any]) -> GraphicEQSettings:
 
 
 def _parse_room_correction_settings(raw: dict[str, Any]) -> RoomCorrectionSettings:
-    """Convert a raw RoomCorrGet response into :class:`RoomCorrectionSettings`."""
+    """Convert a RoomFit band response into :class:`RoomCorrectionSettings`."""
     eq_level = raw.get("EQLevel")
     try:
         parsed_eq_level = int(eq_level) if eq_level is not None else None
@@ -320,6 +320,38 @@ def _parse_room_correction_settings(raw: dict[str, Any]) -> RoomCorrectionSettin
         plugin_uri=str(raw.get("pluginURI", PEQ_PLUGIN_URI)),
         bands=_parse_eq_band_array(raw.get("EQBand", [])),
     )
+
+
+def parse_room_correction_profiles(raw: Any) -> list[str]:
+    """Return saved RoomFit names from an ``EQv2GetNewList`` payload.
+
+    Entries with a ``Type`` other than ``RC`` are skipped. A missing type is
+    kept. Order follows ``custom`` then ``preset``.
+    """
+    if not isinstance(raw, dict):
+        return []
+    names: list[str] = []
+    for key in ("custom", "preset"):
+        entries = raw.get(key, [])
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if isinstance(entry, str):
+                name = entry.strip()
+            elif isinstance(entry, dict):
+                if str(entry.get("Type", "RC")) != "RC":
+                    continue
+                name = str(entry.get("Name", "")).strip()
+            else:
+                continue
+            if name and name not in names:
+                names.append(name)
+    return names
+
+
+def _room_correction_payload(**extra: Any) -> dict[str, Any]:
+    """EqNp payload at the RoomFit EQ level."""
+    return {"EQLevel": ROOM_CORRECTION_EQ_LEVEL, "pluginURI": PEQ_PLUGIN_URI, **extra}
 
 
 def _encode_json_param(payload: dict[str, Any]) -> str:
@@ -423,14 +455,46 @@ class PEQAPI:
         }
 
     async def get_room_correction(self) -> RoomCorrectionSettings:
-        """Get WiiM room-correction settings.
+        """Get RoomFit state.
 
-        The payload is PEQ-shaped but belongs to the device's room-correction
-        block, not the user PEQ preset. This helper is intentionally read-only.
+        ``RoomCorrGet`` leaves ``EQStat`` off while RoomFit is on. The WiiM Home
+        app reads ``EQGetLV2SourceBandEx`` at EQLevel 2. ``Name`` is the active
+        profile.
         """
         self._require_peq()
-        raw = await self._request(API_ENDPOINT_ROOM_CORRECTION_GET)  # type: ignore[attr-defined]
+        payload = _room_correction_payload(source_name="")
+        endpoint = API_ENDPOINT_PEQ_GET_SOURCE_BAND + _encode_json_param(payload)
+        raw = await self._request(endpoint)  # type: ignore[attr-defined]
         return _parse_room_correction_settings(raw.parsed if isinstance(raw.parsed, dict) else {})
+
+    async def get_room_correction_profiles(self) -> list[str]:
+        """Return saved RoomFit profile names.
+
+        An empty list means the device did not return profiles. Callers should
+        treat that as unsupported.
+        """
+        self._require_peq()
+        endpoint = API_ENDPOINT_PEQ_GET_NEW_LIST + _encode_json_param(_room_correction_payload())
+        raw = await self._request(endpoint)  # type: ignore[attr-defined]
+        return parse_room_correction_profiles(raw.parsed)
+
+    async def set_room_correction(self, name: str) -> None:
+        """Load a RoomFit profile, or turn RoomFit off.
+
+        ``Off`` (any case) sends ``EQSourceOff``. Any other name sends
+        ``EQv2SourceLoad`` for that profile. This does not create profiles.
+        """
+        self._require_peq()
+        cleaned = name.strip()
+        if not cleaned:
+            raise WiiMError("Room correction profile name is empty")
+        if cleaned.lower() == "off":
+            payload = _room_correction_payload(source_name="")
+            endpoint = API_ENDPOINT_PEQ_SOURCE_OFF + _encode_json_param(payload)
+        else:
+            payload = _room_correction_payload(Name=cleaned)
+            endpoint = API_ENDPOINT_PEQ_SOURCE_LOAD + _encode_json_param(payload)
+        await self._request(endpoint)  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     # Tune (set)

@@ -197,11 +197,13 @@ listening than one-time setup:
 | `EQGetLV2Band:http://moddevices.com/plugins/caps/Eq10HP` | `client.get_graphic_eq_bands()` | `GraphicEQSettings` | Read-only graphic EQ state |
 | `EQGetLV2SourceBandEx:{...Eq10HP...}` | `client.get_graphic_eq_bands(source_name=...)` | `GraphicEQSettings` | Read-only per-source graphic EQ state |
 | `EQv2GetList:http://moddevices.com/plugins/caps/Eq10HP` | `client.get_graphic_eq_preset_list()` | `dict[str, list[str]]` | Read-only graphic EQ preset names |
-| `RoomCorrGet` | `client.get_room_correction()` | `RoomCorrectionSettings` | Read-only room-correction state |
+| `EQGetLV2SourceBandEx` at EQLevel 2 | `client.get_room_correction()` | `RoomCorrectionSettings` | RoomFit on/off and active profile |
+| `EQv2GetNewList` at EQLevel 2 | `client.get_room_correction_profiles()` | `list[str]` | Saved RoomFit profile names |
+| `EQv2SourceLoad` / `EQSourceOff` at EQLevel 2 | `client.set_room_correction(name)` | none | Load a RoomFit profile, or turn it off |
 
-Write commands for graphic EQ and room correction are intentionally not exposed
-yet. Use the WiiM app for setup/configuration until write behavior is validated
-across more models and firmware versions.
+Write commands for graphic EQ are intentionally not exposed yet. Use the WiiM
+app for graphic EQ setup until write behavior is validated across more models
+and firmware versions. RoomFit profile create and edit stay in the WiiM app.
 
 ## Intentionally Not Exposed
 

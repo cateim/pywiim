@@ -28,6 +28,7 @@ class DummyClient:
         self.get_graphic_eq_bands = AsyncMock(return_value=GraphicEQSettings())
         self.get_graphic_eq_preset_list = AsyncMock(return_value={"custom": [], "preset": []})
         self.get_room_correction = AsyncMock(return_value=RoomCorrectionSettings())
+        self.get_room_correction_profiles = AsyncMock(return_value=[])
         self.capabilities = {
             "vendor": "wiim",
             "is_wiim_device": True,
@@ -126,7 +127,7 @@ async def test_gather_discovered_api_info_stores_read_only_probe_results(capsys)
     assert result["getSoundCardModeSupportList"]["supported"] is True
     assert result["Eq10HP"]["supported"] is True
     assert result["Eq10HP"]["value"]["name"] == "Flat"
-    assert result["RoomCorrGet"]["supported"] is True
+    assert result["RoomFit"]["supported"] is True
     assert "Probing discovered WiiM APIs" in capsys.readouterr().out
 
 
@@ -209,6 +210,7 @@ async def test_room_correction_feature_supported():
             source_name="default",
         )
     )
+    client.get_room_correction_profiles = AsyncMock(return_value=["test"])
     diagnostics = DeviceDiagnostics(client)  # type: ignore[arg-type]
 
     result = await diagnostics._test_room_correction()
@@ -216,3 +218,4 @@ async def test_room_correction_feature_supported():
     assert result["supported"] is True
     assert result["enabled"] is False
     assert result["source_name"] == "default"
+    assert result["profiles"] == ["test"]

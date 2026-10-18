@@ -335,16 +335,20 @@ presets = await player.client.get_graphic_eq_preset_list()
 
 **Data models** (from `pywiim.api.peq`): `GraphicEQBand`, `GraphicEQSettings`. Constant: `GEQ_PLUGIN_URI`.
 
-##### Room Correction — WiiM only, read-only
+##### RoomFit — WiiM only
 
-WiiM firmware exposes a room-correction block through `RoomCorrGet`. The payload is PEQ-shaped (`EqNp` plugin parameters), but it represents the device's room-correction state rather than the user PEQ preset.
+RoomFit is the `EqNp` plugin at **EQLevel 2**. `RoomCorrGet` reports `EQStat` off while RoomFit is on, so state comes from `EQGetLV2SourceBandEx` at that level. Saved profiles come from `EQv2GetNewList` at the same level. `Off` turns RoomFit off. Any other name loads that profile. This does not create or edit profiles.
 
 ```python
 room = await player.client.get_room_correction()
-# room: RoomCorrectionSettings (enabled, channel_mode, name, eq_level, bands)
-```
+# room: RoomCorrectionSettings (enabled, name, eq_level, bands)
 
-pywiim intentionally exposes room correction as **read-only** for now. Use the WiiM app to create or adjust room correction until `RoomCorrSet` / `RoomCorrSetLR` have broad real-device coverage.
+profiles = await player.client.get_room_correction_profiles()
+# ["test", "testnext"] — empty when the device returns no RC profiles
+
+await player.client.set_room_correction("testnext")
+await player.client.set_room_correction("Off")
+```
 
 #### Playback Presets (Radio Stations / Saved Favorites)
 

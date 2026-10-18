@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.14] - 2026-10-18
+
+### Fixed
+- **RoomFit state** ([pywiim #26](https://github.com/mjcumming/pywiim/issues/26), [wiim #283](https://github.com/mjcumming/wiim/issues/283)) — `get_room_correction()` reads `EQGetLV2SourceBandEx` at EQLevel 2. `RoomCorrGet` keeps `EQStat` off while RoomFit is on. `Name` in that response is the active profile.
+
+### Added
+- **RoomFit profiles** ([wiim #283](https://github.com/mjcumming/wiim/issues/283)) — `get_room_correction_profiles()` reads `EQv2GetNewList` at EQLevel 2 and returns `RC` names. `set_room_correction(name)` loads a profile with `EQv2SourceLoad`. `set_room_correction("Off")` sends `EQSourceOff`. `wiim-diagnostics` prints on/off, the current name, and the profile names, and does not change RoomFit. An empty list means the device did not return profiles. Confirmed on a WiiM Pro (`Linkplay.4.8.827634`): one speaker on with profile `Auto`, two speakers off with no saved profiles.
+
 ## [2.3.13] - 2026-10-17
 
 ### Added

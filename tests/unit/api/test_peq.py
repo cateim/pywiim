@@ -241,7 +241,7 @@ class TestParseGraphicEqSettings:
 
 
 class TestParseRoomCorrectionSettings:
-    """Tests for RoomCorrGet parsing."""
+    """Tests for RoomFit state parsing."""
 
     def test_room_correction_response(self):
         """Room correction response is parsed as a PEQ-shaped read-only block."""
@@ -372,7 +372,7 @@ class TestGetRoomCorrection:
 
     @pytest.mark.asyncio
     async def test_get_room_correction(self, mock_client):
-        """get_room_correction parses RoomCorrGet payload."""
+        """get_room_correction reads EQGetLV2SourceBandEx at EQLevel 2."""
         mock_client._request = AsyncMock(
             return_value=ApiResponse(
                 parsed={
@@ -392,7 +392,75 @@ class TestGetRoomCorrection:
         assert result.eq_level == 2
         assert result.bands[0].gain == -3.0
         call_args = mock_client._request.call_args[0][0]
-        assert "RoomCorrGet" in call_args
+        assert "EQGetLV2SourceBandEx" in call_args
+        assert "EQLevel" in call_args
+        assert "EqNp" in call_args
+        assert "RoomCorrGet" not in call_args
+
+    @pytest.mark.asyncio
+    async def test_get_room_correction_profiles(self, mock_client):
+        """Profile names come from the EQLevel 2 list, and non-RC entries are dropped."""
+        mock_client._request = AsyncMock(
+            return_value=ApiResponse(
+                parsed={
+                    "custom": [
+                        {"Name": "test", "Type": "RC"},
+                        {"Name": "user-eq", "Type": "Custom"},
+                        {"Name": "testnext", "Type": "RC"},
+                    ],
+                    "preset": [],
+                },
+                raw=None,
+            )
+        )
+
+        result = await mock_client.get_room_correction_profiles()
+
+        assert result == ["test", "testnext"]
+        call_args = mock_client._request.call_args[0][0]
+        assert "EQv2GetNewList" in call_args
+        assert "EQLevel" in call_args
+
+    @pytest.mark.asyncio
+    async def test_get_room_correction_profiles_rejects_non_list(self, mock_client):
+        """Unknown-command text is an empty profile list."""
+        mock_client._request = AsyncMock(return_value=ApiResponse(parsed="unknown command", raw="unknown command"))
+
+        assert await mock_client.get_room_correction_profiles() == []
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_loads_named_profile(self, mock_client):
+        """A profile name loads that RoomFit profile."""
+        mock_client._request = AsyncMock(return_value=ApiResponse(parsed={"status": "OK"}, raw="OK"))
+
+        await mock_client.set_room_correction("testnext")
+
+        call_args = mock_client._request.call_args[0][0]
+        assert "EQv2SourceLoad" in call_args
+        assert "testnext" in call_args
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_off(self, mock_client):
+        """Off sends EQSourceOff at the RoomFit level."""
+        mock_client._request = AsyncMock(return_value=ApiResponse(parsed={"status": "OK"}, raw="OK"))
+
+        await mock_client.set_room_correction(" off ")
+
+        call_args = mock_client._request.call_args[0][0]
+        assert "EQSourceOff" in call_args
+        assert "EQv2SourceLoad" not in call_args
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_rejects_empty_name(self, mock_client):
+        """An empty name is not sent to the device."""
+        from pywiim.exceptions import WiiMError
+
+        mock_client._request = AsyncMock()
+
+        with pytest.raises(WiiMError, match="empty"):
+            await mock_client.set_room_correction("  ")
+
+        mock_client._request.assert_not_called()
 
 
 class TestSetPeqBands:

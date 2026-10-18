@@ -228,7 +228,7 @@ class DeviceDiagnostics:
         await probe("getSoundCardModeSupportList", self.client.get_sound_card_mode_support_list)
         await probe("Eq10HP", self.client.get_graphic_eq_bands)
         await probe("Eq10HPPresetList", self.client.get_graphic_eq_preset_list)
-        await probe("RoomCorrGet", self.client.get_room_correction)
+        await probe("RoomFit", self.client.get_room_correction)
 
         self.report["discovered_apis"] = discovered
 
@@ -314,6 +314,22 @@ class DeviceDiagnostics:
                             print(f"         - {filt}{marker}")
                     else:
                         detail = result.get("response") or result.get("error") or result.get("reason")
+                        if detail:
+                            print(f"      {detail}")
+                elif name == "Room Correction":
+                    if result.get("supported"):
+                        state = "on" if result.get("enabled") else "off"
+                        current = result.get("name") or "none"
+                        print(f"      {state}, current: {current}")
+                        profiles = result.get("profiles") or []
+                        if profiles:
+                            for profile in profiles:
+                                marker = " ← current" if profile == result.get("name") else ""
+                                print(f"         - {profile}{marker}")
+                        else:
+                            print("      Profiles: none")
+                    else:
+                        detail = result.get("error") or result.get("reason")
                         if detail:
                             print(f"      {detail}")
 
@@ -843,10 +859,12 @@ class DeviceDiagnostics:
             if not self.client.capabilities.get("supports_peq", False):
                 return {"supported": False, "reason": "Room correction not supported (WiiM only)"}
             settings = await self.client.get_room_correction()
+            profiles = await self.client.get_room_correction_profiles()
             return {
                 "supported": True,
                 "enabled": settings.enabled,
                 "name": settings.name,
+                "profiles": profiles,
                 "source_name": settings.source_name,
                 "eq_level": settings.eq_level,
                 "plugin_uri": settings.plugin_uri,
