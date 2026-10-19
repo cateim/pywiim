@@ -5560,6 +5560,55 @@ class TestPlayerLEDIndicatorAndDisplay:
             await player.set_digital_filter("Nope")
         mock_client.set_digital_filter_index.assert_not_called()
 
+    def test_output_channel_reads_cached_status(self, mock_client):
+        """output_channel comes from ch in the cached status; supports_* from capabilities."""
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_output_channel": True})
+        player = Player(mock_client)
+        assert player.output_channel is None
+        assert player.supports_output_channel is True
+
+        player._status_model = PlayerStatus.model_validate({"ch": "2", "vol": "24"})
+        assert player.output_channel == "right"
+
+        type(mock_client).capabilities = PropertyMock(return_value={})
+        assert Player(mock_client).supports_output_channel is False
+
+    @pytest.mark.asyncio
+    async def test_set_output_channel_updates_cache(self, mock_client):
+        """set_output_channel sends the normalized name and updates the cached status."""
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_output_channel": True})
+        mock_client.set_output_channel = AsyncMock()
+        player = Player(mock_client)
+        player._status_model = PlayerStatus.model_validate({"ch": "0"})
+        callback = MagicMock()
+        player._on_state_changed = callback
+
+        await player.set_output_channel("Left")
+
+        mock_client.set_output_channel.assert_called_once_with("left")
+        assert player.output_channel == "left"
+        callback.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_set_output_channel_rejects_unknown_and_unsupported(self, mock_client):
+        """Unsupported devices and unknown names do not send a command."""
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_output_channel": False})
+        mock_client.set_output_channel = AsyncMock()
+        player = Player(mock_client)
+        with pytest.raises(WiiMError, match="not supported"):
+            await player.set_output_channel("left")
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_output_channel": True})
+        with pytest.raises(ValueError):
+            await player.set_output_channel("mono")
+        mock_client.set_output_channel.assert_not_called()
+
     @pytest.mark.asyncio
     async def test_set_room_correction_off_keeps_selected_name(self, mock_client):
         """Off disables RoomFit and the cached name stays the selected profile."""

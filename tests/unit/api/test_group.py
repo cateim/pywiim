@@ -374,6 +374,44 @@ class TestGroupAPISlaveManagement:
         with pytest.raises(RuntimeError, match="Not a group master"):
             await mock_client.mute_slave("192.168.1.102", True)
 
+    @pytest.mark.parametrize(("channel", "expected"), [("stereo", 0), ("left", 1), ("Right", 2)])
+    @pytest.mark.asyncio
+    async def test_set_slave_channel(self, mock_client, channel, expected):
+        """The master sets a slave's channel with multiroom:SlaveChannel:<ip>:<N>."""
+        mock_client._group_master = "192.168.1.100"
+        type(mock_client).host = "192.168.1.100"
+        mock_client._request = AsyncMock(return_value=ApiResponse(parsed=None, raw="OK"))
+
+        await mock_client.set_slave_channel("192.168.1.101", channel)
+
+        mock_client._request.assert_called_once_with(
+            f"/httpapi.asp?command=multiroom:SlaveChannel:192.168.1.101:{expected}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_set_slave_channel_not_master(self, mock_client):
+        """A non-master refuses before sending anything."""
+        mock_client._group_master = "192.168.1.101"
+        type(mock_client).host = "192.168.1.100"
+        mock_client._request = AsyncMock()
+
+        with pytest.raises(RuntimeError, match="Not a group master"):
+            await mock_client.set_slave_channel("192.168.1.102", "left")
+
+        mock_client._request.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_set_slave_channel_rejects_unknown_name(self, mock_client):
+        """An unknown channel name raises ValueError and sends nothing."""
+        mock_client._group_master = "192.168.1.100"
+        type(mock_client).host = "192.168.1.100"
+        mock_client._request = AsyncMock()
+
+        with pytest.raises(ValueError):
+            await mock_client.set_slave_channel("192.168.1.101", "mono")
+
+        mock_client._request.assert_not_called()
+
 
 class TestGroupAPIDeviceGroupInfo:
     """Test GroupAPI device group info methods."""

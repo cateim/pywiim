@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Output channel (stereo / left / right)**: `Player.output_channel` reads the `ch` field of every player status poll (`0` stereo, `1` left, `2` right). `set_output_channel(name)` sends `setPlayerCmd:slave_channel:N` and updates the cache right away; it works on a standalone player and on a group member addressed directly. `supports_output_channel` is set at capability detection when the status response already fetched there has a valid `ch`, so the probe sends no extra request and writes nothing. A group master can also set a member with `client.set_slave_channel(ip, name)` (`multiroom:SlaveChannel:<ip>:<N>`). `wiim-diagnostics` prints the current channel without changing it. This is separate from channel balance (`getChannelBalance` answers `unknown command` on these devices). Confirmed on an AudioCast AMP (A31, firmware 4.6.629929) and an iEAST-02 (A31, firmware 4.6.629930): read, set left, right and stereo, each read back from the next status poll.
+
 ## [2.3.15] - 2026-10-18
 
 ### Added

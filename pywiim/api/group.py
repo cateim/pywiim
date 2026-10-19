@@ -14,9 +14,11 @@ import time
 from typing import Any
 
 from ..models import DeviceGroupInfo, DeviceInfo, GroupDeviceState, GroupState
+from .audio_settings import output_channel_value
 from .constants import (
     API_ENDPOINT_GROUP_EXIT,
     API_ENDPOINT_GROUP_KICK,
+    API_ENDPOINT_GROUP_SLAVE_CHANNEL,
     API_ENDPOINT_GROUP_SLAVE_MUTE,
     API_ENDPOINT_GROUP_SLAVES,
 )
@@ -419,6 +421,27 @@ class GroupAPI:
         if not self.is_master:
             raise RuntimeError("Not a group master")
         await self._request(f"{API_ENDPOINT_GROUP_SLAVE_MUTE}{slave_ip}:{1 if mute else 0}")  # type: ignore[attr-defined]
+
+    async def set_slave_channel(self, slave_ip: str, channel: str) -> None:
+        """Set a slave's output channel through the master (master only).
+
+        Sends ``multiroom:SlaveChannel:<slave_ip>:<N>``. The member reports the new
+        value in the ``ch`` field of its own player status, and the master lists it
+        as ``channel`` in ``multiroom:getSlaveList``.
+
+        Args:
+            slave_ip: IP address of the slave device.
+            channel: ``"stereo"``, ``"left"`` or ``"right"``, any case.
+
+        Raises:
+            RuntimeError: If this device is not the group master.
+            ValueError: If ``channel`` is not one of the three names.
+            WiiMError: If the request fails.
+        """
+        if not self.is_master:
+            raise RuntimeError("Not a group master")
+        value = output_channel_value(channel)
+        await self._request(f"{API_ENDPOINT_GROUP_SLAVE_CHANNEL}{slave_ip}:{value}")  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     # Group state helpers

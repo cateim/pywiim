@@ -31,6 +31,9 @@ from .api.constants import (
     ALARM_TRIGGER_WEEKLY,
     ALARM_TRIGGER_WEEKLY_BITMASK,
     GEQ_PLUGIN_URI,
+    OUTPUT_CHANNEL_LEFT,
+    OUTPUT_CHANNEL_RIGHT,
+    OUTPUT_CHANNEL_STEREO,
     PEQ_CHANNEL_MODE_LR,
     PEQ_CHANNEL_MODE_STEREO,
     PEQ_DEFAULT_FREQUENCIES,
@@ -178,6 +181,10 @@ __all__ = [
     "SUBWOOFER_DELAY_MAX",
     "SUBWOOFER_PHASE_0",
     "SUBWOOFER_PHASE_180",
+    # Output channel names (Player.output_channel / set_output_channel)
+    "OUTPUT_CHANNEL_STEREO",
+    "OUTPUT_CHANNEL_LEFT",
+    "OUTPUT_CHANNEL_RIGHT",
     # PEQ (Parametric EQ) models and constants
     "PEQBand",
     "PEQSettings",
