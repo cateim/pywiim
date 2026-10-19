@@ -143,6 +143,13 @@ class PlayerBase:
         self._digital_filter_index: int | None = None
         self._last_digital_filter_check: float = 0
 
+        # RoomFit profiles and switch. Both refresh on the 60s configuration tier
+        # because profiles are created in the WiiM app.
+        self._room_correction_profiles: list[str] = []
+        self._room_correction_enabled: bool = False
+        self._room_correction_name: str = ""
+        self._last_room_correction_check: float = 0
+
         # UPnP health tracking (only if UPnP client is provided)
         self._upnp_health_tracker: UpnpHealthTracker | None = None
         if upnp_client is not None:

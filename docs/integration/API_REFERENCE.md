@@ -348,6 +348,12 @@ profiles = await player.client.get_room_correction_profiles()
 
 await player.client.set_room_correction("testnext")
 await player.client.set_room_correction("Off")
+
+# Cached for Home Assistant. Refreshed about every 60 seconds when supports_peq is true.
+player.room_correction_profiles  # ["test", "testnext"]
+player.room_correction  # "Off" while disabled, otherwise the selected profile name
+await player.set_room_correction("testnext")
+await player.set_room_correction("Off")
 ```
 
 #### Playback Presets (Radio Stations / Saved Favorites)

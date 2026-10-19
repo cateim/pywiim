@@ -5561,6 +5561,80 @@ class TestPlayerLEDIndicatorAndDisplay:
         mock_client.set_digital_filter_index.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_set_room_correction_off_keeps_selected_name(self, mock_client):
+        """Off disables RoomFit and the cached name stays the selected profile."""
+        from pywiim.player import Player
+
+        mock_client.set_room_correction = AsyncMock()
+        player = Player(mock_client)
+        player._room_correction_profiles = ["Bed", "Desk"]
+        player._room_correction_enabled = True
+        player._room_correction_name = "Bed"
+
+        await player.set_room_correction("Off")
+
+        mock_client.set_room_correction.assert_called_once_with("Off")
+        assert player.room_correction == "Off"
+        assert player._room_correction_name == "Bed"
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_loads_profile(self, mock_client):
+        """A profile name loads that profile and becomes the current value."""
+        from pywiim.player import Player
+
+        mock_client.set_room_correction = AsyncMock()
+        player = Player(mock_client)
+        player._room_correction_profiles = ["Bed", "Desk"]
+        player._room_correction_enabled = False
+        player._room_correction_name = "Bed"
+
+        await player.set_room_correction("desk")
+
+        mock_client.set_room_correction.assert_called_once_with("Desk")
+        assert player.room_correction == "Desk"
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_rejects_unknown(self, mock_client):
+        """An unknown profile is not sent."""
+        from pywiim.player import Player
+
+        mock_client.set_room_correction = AsyncMock()
+        player = Player(mock_client)
+        player._room_correction_profiles = ["Bed"]
+
+        with pytest.raises(WiiMError, match="Unknown"):
+            await player.set_room_correction("Nope")
+
+        mock_client.set_room_correction.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_fetches_when_cache_empty(self, mock_client):
+        """An empty cache is filled from the device before the name is checked."""
+        from pywiim.player import Player
+
+        mock_client.get_room_correction_profiles = AsyncMock(return_value=["Auto"])
+        mock_client.set_room_correction = AsyncMock()
+        player = Player(mock_client)
+
+        await player.set_room_correction("Auto")
+
+        mock_client.set_room_correction.assert_called_once_with("Auto")
+        assert player.room_correction == "Auto"
+
+    @pytest.mark.asyncio
+    async def test_set_room_correction_rejects_blank(self, mock_client):
+        """A blank name is not sent."""
+        from pywiim.player import Player
+
+        mock_client.set_room_correction = AsyncMock()
+        player = Player(mock_client)
+
+        with pytest.raises(WiiMError, match="empty"):
+            await player.set_room_correction("  ")
+
+        mock_client.set_room_correction.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_set_display_enabled_delegates_to_client(self, mock_client):
         """Test set_display_enabled delegates to client.set_display_enabled."""
         from pywiim.player import Player

@@ -406,6 +406,38 @@ class Player(PlayerBase):
         if self._on_state_changed:
             self._on_state_changed()
 
+    async def set_room_correction(self, name: str) -> None:
+        """Load a RoomFit profile, or turn RoomFit off.
+
+        ``Off`` disables RoomFit and leaves the selected profile name cached.
+        Any other name must be one of ``room_correction_profiles``.
+
+        Raises:
+            WiiMError: If ``name`` is empty or not a saved profile.
+        """
+        cleaned = name.strip()
+        if not cleaned:
+            raise WiiMError("Room correction profile name is empty")
+        if cleaned.lower() == "off":
+            await self.client.set_room_correction("Off")
+            self._room_correction_enabled = False
+        else:
+            profiles = list(self._room_correction_profiles)
+            if not profiles:
+                profiles = await self.client.get_room_correction_profiles()
+                self._room_correction_profiles = list(profiles)
+            chosen = cleaned if cleaned in profiles else None
+            if chosen is None:
+                matches = [profile for profile in profiles if profile.lower() == cleaned.lower()]
+                chosen = matches[0] if len(matches) == 1 else None
+            if chosen is None:
+                raise WiiMError(f"Unknown room correction profile {name!r}")
+            await self.client.set_room_correction(chosen)
+            self._room_correction_enabled = True
+            self._room_correction_name = chosen
+        if self._on_state_changed:
+            self._on_state_changed()
+
     async def get_channel_balance(self) -> float | None:
         """Read stereo channel balance from the device and refresh the player cache.
 
@@ -1358,6 +1390,26 @@ class Player(PlayerBase):
         for item in self._digital_filters:
             if item.index == self._digital_filter_index:
                 return item.name
+        return None
+
+    @property
+    def room_correction_profiles(self) -> list[str]:
+        """Cached RoomFit profile names."""
+        return list(self._room_correction_profiles)
+
+    @property
+    def room_correction(self) -> str | None:
+        """``Off`` when RoomFit is disabled, otherwise the selected profile name.
+
+        The device keeps the profile name while the switch is off, so this
+        property reports ``Off`` in that case.
+        """
+        if not self._room_correction_profiles and not self._room_correction_name:
+            return None
+        if not self._room_correction_enabled:
+            return "Off"
+        if self._room_correction_name in self._room_correction_profiles:
+            return self._room_correction_name
         return None
 
     @property

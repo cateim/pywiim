@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.15] - 2026-10-18
+
+### Added
+- **RoomFit player cache** ([wiim #283](https://github.com/mjcumming/wiim/issues/283)) — `Player.room_correction_profiles` and `Player.room_correction` refresh about every 60 seconds when `supports_peq` is true. `room_correction` is `Off` while RoomFit is disabled, even though the device still reports the selected profile name. `set_room_correction(name)` loads a saved profile or turns RoomFit off.
+
 ## [2.3.14] - 2026-10-18
 
 ### Fixed

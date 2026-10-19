@@ -675,6 +675,63 @@ class TestStateManager:
         mock_player.client.get_digital_filter_index.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_refresh_fetches_room_correction_on_full(self, state_manager, mock_player):
+        """Full refresh caches RoomFit profiles, the switch, and the selected name."""
+        from pywiim.api.peq import RoomCorrectionSettings
+
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_peq": True})
+        mock_player.client.get_room_correction = AsyncMock(
+            return_value=RoomCorrectionSettings(enabled=False, name="Bed")
+        )
+        mock_player.client.get_room_correction_profiles = AsyncMock(return_value=["Bed", "Desk"])
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        assert mock_player.room_correction_profiles == ["Bed", "Desk"]
+        assert mock_player.room_correction == "Off"
+        assert mock_player._last_room_correction_check != 0
+
+    @pytest.mark.asyncio
+    async def test_refresh_skips_room_correction_without_peq(self, state_manager, mock_player):
+        """Refresh does not read RoomFit when the device has no LV2 PEQ."""
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_peq": False})
+        mock_player.client.get_room_correction = AsyncMock()
+        mock_player.client.get_room_correction_profiles = AsyncMock()
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        mock_player.client.get_room_correction.assert_not_called()
+        mock_player.client.get_room_correction_profiles.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_refresh_room_correction_error_does_not_stamp(self, state_manager, mock_player):
+        """A failed RoomFit read leaves the last-check time at zero so the next poll retries."""
+        mock_status = PlayerStatus(play_state="pause")
+        mock_player.client.get_player_status_model = AsyncMock(return_value=mock_status)
+        TestStateManager._setup_refresh_mocks(mock_player, state_manager)
+        type(mock_player.client).capabilities = PropertyMock(return_value={"supports_peq": True})
+        mock_player.client.get_room_correction = AsyncMock(side_effect=RuntimeError("nope"))
+
+        with patch("pywiim.player.groupops.GroupOperations") as mock_groupops:
+            mock_groupops.return_value._synchronize_group_state = AsyncMock()
+
+            await state_manager.refresh(full=True)
+
+        assert mock_player._last_room_correction_check == 0
+
+    @pytest.mark.asyncio
     async def test_refresh_fetches_display_on_full(self, state_manager, mock_player):
         """Test full refresh reads the LCD when supports_display_config."""
         mock_status = PlayerStatus(play_state="pause")

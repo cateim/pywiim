@@ -1159,6 +1159,26 @@ class StateManager:
             except Exception as err:
                 _LOGGER.debug("Failed to fetch DAC digital filter for %s: %s", self.player.host, err)
 
+        # RoomFit. The profile list changes in the app, so refresh names and the
+        # switch together on the same 60s tier. supports_peq is the gate.
+        peq_supported = bool(self.player.client.capabilities.get("supports_peq", False))
+        should_fetch_room = full or (
+            self._polling_strategy
+            and self._polling_strategy.should_fetch_led_indicator(
+                self.player._last_room_correction_check, peq_supported, now=now
+            )
+        )
+        if should_fetch_room and peq_supported:
+            try:
+                settings = await self.player.client.get_room_correction()
+                profiles = await self.player.client.get_room_correction_profiles()
+                self.player._room_correction_enabled = bool(settings.enabled)
+                self.player._room_correction_name = str(settings.name or "")
+                self.player._room_correction_profiles = list(profiles)
+                self.player._last_room_correction_check = now
+            except Exception as err:
+                _LOGGER.debug("Failed to fetch RoomFit for %s: %s", self.player.host, err)
+
     async def _finalize_refresh(self, track_changed: bool) -> None:
         """Finalize refresh: sync group state, enrich metadata, propagate, notify.
 
