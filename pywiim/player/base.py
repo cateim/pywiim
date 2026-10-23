@@ -269,6 +269,13 @@ class PlayerBase:
         return None
 
     @property
+    def eth_mac_address(self) -> str | None:
+        """Ethernet MAC address from cached device_info (None if not reported)."""
+        if self._device_info:
+            return self._device_info.eth_mac
+        return None
+
+    @property
     def uuid(self) -> str | None:
         """Device UUID from cached device_info."""
         if self._device_info:

@@ -56,6 +56,25 @@ async def test_gather_capabilities_prints_upnp_description_enrichment(capsys):
 
 
 @pytest.mark.asyncio
+async def test_gather_device_info_prints_ethernet_mac(capsys):
+    """Diagnostics prints the Ethernet MAC next to the Wi-Fi MAC."""
+    from pywiim.models import DeviceInfo
+
+    client = DummyClient()
+    client.get_device_info_model = AsyncMock(  # type: ignore[attr-defined]
+        return_value=DeviceInfo.model_validate({"MAC": "C0:F5:35:D7:18:B5", "ETH_MAC": "00:22:6C:30:45:66"})
+    )
+    diagnostics = DeviceDiagnostics(client)  # type: ignore[arg-type]
+
+    await diagnostics._gather_device_info()
+    output = capsys.readouterr().out
+
+    assert "MAC: C0:F5:35:D7:18:B5" in output
+    assert "Ethernet MAC: 00:22:6C:30:45:66" in output
+    assert diagnostics.report["device"]["eth_mac"] == "00:22:6C:30:45:66"
+
+
+@pytest.mark.asyncio
 async def test_gather_debug_info_success(capsys):
     """_gather_debug_info stores result and prints count when get_debug_info returns data."""
     client = DummyClient()

@@ -83,6 +83,7 @@ class DeviceDiagnostics:
                 "model": device_info.model,
                 "firmware": device_info.firmware,
                 "mac": device_info.mac,
+                "eth_mac": device_info.eth_mac,
                 "ip": device_info.ip,
                 "preset_key": device_info.preset_key,
                 "input_list": device_info.input_list,
@@ -90,6 +91,7 @@ class DeviceDiagnostics:
             print(f"   ✓ Device: {device_info.name} ({device_info.model})")
             print(f"   ✓ Firmware: {device_info.firmware}")
             print(f"   ✓ MAC: {device_info.mac}")
+            print(f"   ✓ Ethernet MAC: {device_info.eth_mac}")
         except Exception as err:
             error_msg = f"Failed to get device info: {err}"
             self.report["errors"].append(error_msg)

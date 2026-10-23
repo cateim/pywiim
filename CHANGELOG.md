@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Ethernet MAC** ([wiim #285](https://github.com/mjcumming/wiim/issues/285)) — `DeviceInfo.eth_mac` reads `ETH_MAC` from getStatusEx and `Player.eth_mac_address` exposes it. `MAC` stays the Wi-Fi MAC. `wiim-diagnostics` prints the Ethernet MAC after the MAC. Confirmed on a WiiM Pro Plus on cable: `ETH_MAC` differs from `MAC`.
+
 ## [2.3.15] - 2026-10-18
 
 ### Added
