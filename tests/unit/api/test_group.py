@@ -378,8 +378,9 @@ class TestGroupAPISlaveManagement:
     @pytest.mark.asyncio
     async def test_set_slave_channel(self, mock_client, channel, expected):
         """The master sets a slave's channel with multiroom:SlaveChannel:<ip>:<N>."""
-        mock_client._group_master = "192.168.1.100"
+        mock_client._group_master = None
         type(mock_client).host = "192.168.1.100"
+        mock_client.get_device_group_info = AsyncMock(return_value=DeviceGroupInfo(role="master"))
         mock_client._request = AsyncMock(return_value=ApiResponse(parsed=None, raw="OK"))
 
         await mock_client.set_slave_channel("192.168.1.101", channel)
@@ -388,11 +389,13 @@ class TestGroupAPISlaveManagement:
             f"/httpapi.asp?command=multiroom:SlaveChannel:192.168.1.101:{expected}"
         )
 
+    @pytest.mark.parametrize("role", ["solo", "slave"])
     @pytest.mark.asyncio
-    async def test_set_slave_channel_not_master(self, mock_client):
+    async def test_set_slave_channel_not_master(self, mock_client, role):
         """A non-master refuses before sending anything."""
-        mock_client._group_master = "192.168.1.101"
+        mock_client._group_master = "192.168.1.100"
         type(mock_client).host = "192.168.1.100"
+        mock_client.get_device_group_info = AsyncMock(return_value=DeviceGroupInfo(role=role))
         mock_client._request = AsyncMock()
 
         with pytest.raises(RuntimeError, match="Not a group master"):
@@ -413,6 +416,7 @@ class TestGroupAPISlaveManagement:
         """The master must acknowledge a member channel command."""
         mock_client._group_master = "192.168.1.100"
         type(mock_client).host = "192.168.1.100"
+        mock_client.get_device_group_info = AsyncMock(return_value=DeviceGroupInfo(role="master"))
         mock_client._request = AsyncMock(return_value=response)
 
         with pytest.raises(WiiMResponseError, match="output channel"):
@@ -423,6 +427,7 @@ class TestGroupAPISlaveManagement:
         """An unknown channel name raises ValueError and sends nothing."""
         mock_client._group_master = "192.168.1.100"
         type(mock_client).host = "192.168.1.100"
+        mock_client.get_device_group_info = AsyncMock(return_value=DeviceGroupInfo(role="master"))
         mock_client._request = AsyncMock()
 
         with pytest.raises(ValueError):

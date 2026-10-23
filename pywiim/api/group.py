@@ -439,9 +439,9 @@ class GroupAPI:
             ValueError: If ``channel`` is not one of the three names.
             WiiMError: If the request fails.
         """
-        if not self.is_master:
-            raise RuntimeError("Not a group master")
         value = output_channel_value(channel)
+        if (await self.get_device_group_info()).role != "master":
+            raise RuntimeError("Not a group master")
         endpoint = f"{API_ENDPOINT_GROUP_SLAVE_CHANNEL}{slave_ip}:{value}"
         response = await self._request(endpoint)  # type: ignore[attr-defined]
         if (response.raw or "").strip().upper() != "OK" and response.parsed != "OK":

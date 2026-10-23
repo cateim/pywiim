@@ -922,6 +922,9 @@ await player.set_output_channel("left")  # setPlayerCmd:slave_channel:1; works o
 await player.client.get_output_channel()  # reads "ch" from a fresh status request
 await master.client.set_slave_channel("192.168.1.101", "right")  # multiroom:SlaveChannel (master only)
 
+# Group members poll their own channel even while playback metadata comes from the master.
+# Both setters require a device acknowledgement; rejected commands raise WiiMResponseError.
+
 # Status and metadata fetchers
 await player.get_multiroom_status()  # Returns dict[str, Any]
 await player.get_audio_output_status()  # Returns dict[str, Any] | None
