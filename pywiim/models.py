@@ -75,6 +75,7 @@ class DeviceInfo(_WiimBase):
     model: str | None = Field(None, alias="project")
     firmware: str | None = None
     mac: str | None = Field(None, alias="MAC")
+    eth_mac: str | None = Field(None, alias="ETH_MAC")  # Ethernet MAC (MAC is the Wi-Fi MAC)
     ip: str | None = None
 
     # Extended attributes referenced elsewhere
@@ -117,6 +118,14 @@ class DeviceInfo(_WiimBase):
         return compare_firmware_versions(self.firmware, "4.2.8020") < 0
 
     # ---------------- Validators ----------------
+
+    @field_validator("eth_mac", mode="before")
+    @classmethod
+    def _normalize_eth_mac(cls, v: str | None) -> str | None:
+        """Treat an empty or all-zero ETH_MAC as no Ethernet MAC."""
+        if isinstance(v, str) and v.strip() in ("", "00:00:00:00:00:00"):
+            return None
+        return v
 
     @field_validator("input_list", mode="before")
     @classmethod

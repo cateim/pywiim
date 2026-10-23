@@ -3837,6 +3837,38 @@ class TestPlayerMediaMetadata:
         assert player.mac_address == "AA:BB:CC:DD:EE:FF"
 
     @pytest.mark.asyncio
+    async def test_eth_mac_address_property(self, mock_client):
+        """Test getting Ethernet MAC address property."""
+        from pywiim.player import Player
+
+        player = Player(mock_client)
+        player._device_info = DeviceInfo.model_validate({"MAC": "C0:F5:35:D7:18:B5", "ETH_MAC": "00:22:6C:30:45:66"})
+
+        assert player.eth_mac_address == "00:22:6C:30:45:66"
+        assert player.mac_address == "C0:F5:35:D7:18:B5"
+
+    @pytest.mark.asyncio
+    async def test_eth_mac_address_property_missing(self, mock_client):
+        """Test Ethernet MAC address is None when not reported or not refreshed."""
+        from pywiim.player import Player
+
+        player = Player(mock_client)
+        assert player.eth_mac_address is None
+
+        player._device_info = DeviceInfo(uuid="test", mac="AA:BB:CC:DD:EE:FF")
+        assert player.eth_mac_address is None
+
+    @pytest.mark.asyncio
+    async def test_eth_mac_address_property_placeholder(self, mock_client):
+        """Test all-zero Ethernet MAC address is reported as None."""
+        from pywiim.player import Player
+
+        player = Player(mock_client)
+        player._device_info = DeviceInfo.model_validate({"ETH_MAC": "00:00:00:00:00:00"})
+
+        assert player.eth_mac_address is None
+
+    @pytest.mark.asyncio
     async def test_uuid_property(self, mock_client):
         """Test getting UUID property."""
         from pywiim.player import Player

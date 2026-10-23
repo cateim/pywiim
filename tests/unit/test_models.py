@@ -65,6 +65,33 @@ class TestDeviceInfo:
         assert info.mac == "AA:BB:CC:DD:EE:FF"
         assert info.firmware == "5.0.1"
 
+    def test_device_info_eth_mac_from_status(self):
+        """ETH_MAC from getStatusEx is the Ethernet MAC, separate from the Wi-Fi MAC."""
+        info = DeviceInfo.model_validate({"MAC": "C0:F5:35:D7:18:B5", "ETH_MAC": "00:22:6C:30:45:66"})
+        assert info.mac == "C0:F5:35:D7:18:B5"
+        assert info.eth_mac == "00:22:6C:30:45:66"
+
+    def test_device_info_eth_mac_field_name(self):
+        """eth_mac can be set by field name."""
+        info = DeviceInfo(eth_mac="00:22:6C:30:45:66")
+        assert info.eth_mac == "00:22:6C:30:45:66"
+
+    def test_device_info_eth_mac_missing(self):
+        """eth_mac is None when the device does not report ETH_MAC."""
+        info = DeviceInfo.model_validate({"MAC": "C0:F5:35:D7:18:B5"})
+        assert info.eth_mac is None
+
+    @pytest.mark.parametrize("placeholder", ["", "   ", "00:00:00:00:00:00"])
+    def test_device_info_eth_mac_placeholder_is_none(self, placeholder):
+        """Empty or all-zero ETH_MAC is treated as no Ethernet MAC."""
+        info = DeviceInfo.model_validate({"ETH_MAC": placeholder})
+        assert info.eth_mac is None
+
+    def test_device_info_mac_placeholder_unchanged(self):
+        """The placeholder handling applies to eth_mac only, not mac."""
+        info = DeviceInfo.model_validate({"MAC": "00:00:00:00:00:00"})
+        assert info.mac == "00:00:00:00:00:00"
+
     def test_device_info_extra_fields(self):
         """Test DeviceInfo allows extra fields for forward compatibility."""
         info = DeviceInfo(

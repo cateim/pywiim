@@ -185,6 +185,7 @@ player.firmware           # str | None - Firmware version
 player.firmware_update_available  # bool - True if update is available and ready
 player.latest_firmware_version    # str | None - Latest available firmware version
 player.mac_address        # str | None - MAC address
+player.eth_mac_address    # str | None - Ethernet MAC address (ETH_MAC), None if not reported
 player.uuid               # str | None - Device UUID
 player.host               # str - IP/hostname
 player.port               # int - Port number
