@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from ..exceptions import WiiMError
+from ..exceptions import WiiMError, WiiMResponseError
 from ..models import SoundCardModeSupport, parse_output_channel
 from .constants import (
     API_ENDPOINT_GET_CHANNEL_BALANCE,
@@ -181,9 +181,15 @@ class AudioSettingsAPI:
         Raises:
             ValueError: If ``channel`` is not one of the three names.
             WiiMRequestError: If the request fails.
+            WiiMResponseError: If the device does not acknowledge the command.
         """
         value = output_channel_value(channel)
-        await self._request(f"{API_ENDPOINT_SET_OUTPUT_CHANNEL}{value}")  # type: ignore[attr-defined]
+        endpoint = f"{API_ENDPOINT_SET_OUTPUT_CHANNEL}{value}"
+        response = await self._request(endpoint)  # type: ignore[attr-defined]
+        if (response.raw or "").strip().upper() != "OK" and response.parsed != "OK":
+            raise WiiMResponseError(
+                f"Failed to set output channel: {response.raw or response.parsed!r}", endpoint=endpoint
+            )
 
     # ------------------------------------------------------------------
     # Helper methods

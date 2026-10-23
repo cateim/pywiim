@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, call, patch
 
 import pytest
 
-from pywiim.exceptions import WiiMError
+from pywiim.exceptions import WiiMError, WiiMResponseError
 from pywiim.models import DeviceInfo, PlayerStatus
 
 
@@ -5574,6 +5574,41 @@ class TestPlayerLEDIndicatorAndDisplay:
 
         type(mock_client).capabilities = PropertyMock(return_value={})
         assert Player(mock_client).supports_output_channel is False
+
+    @pytest.mark.parametrize("initial", [None, "right"])
+    @pytest.mark.parametrize(("ch", "expected"), [("0", "stereo"), ("1", "left"), ("2", "right"), ("9", None)])
+    @pytest.mark.asyncio
+    async def test_output_channel_member_poll(self, mock_client, initial, ch, expected):
+        """Member-local channel changes are polled without replacing master metadata."""
+        from pywiim.player import Player
+
+        player = Player(mock_client)
+        player._detected_role = "slave"
+        if initial is not None:
+            player._status_model = PlayerStatus(output_channel=initial, title="Master Track")
+        mock_client.get_player_status = AsyncMock(return_value={"ch": ch, "title": "Member Track"})
+
+        await player._state_mgr._refresh_core_status()
+
+        assert player.output_channel == expected
+        assert player._status_model.title == ("Master Track" if initial is not None else None)
+
+    @pytest.mark.asyncio
+    async def test_output_channel_failed_write_keeps_cache(self, mock_client):
+        """A rejected setting leaves both the cached channel and listeners alone."""
+        from pywiim.player import Player
+
+        type(mock_client).capabilities = PropertyMock(return_value={"supports_output_channel": True})
+        mock_client.set_output_channel = AsyncMock(side_effect=WiiMResponseError("unknown command"))
+        callback = MagicMock()
+        player = Player(mock_client, on_state_changed=callback)
+        player._status_model = PlayerStatus(output_channel="stereo")
+
+        with pytest.raises(WiiMResponseError):
+            await player.set_output_channel("left")
+
+        assert player.output_channel == "stereo"
+        callback.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_set_output_channel_updates_cache(self, mock_client):

@@ -13,6 +13,7 @@ import logging
 import time
 from typing import Any
 
+from ..exceptions import WiiMResponseError
 from ..models import DeviceGroupInfo, DeviceInfo, GroupDeviceState, GroupState
 from .audio_settings import output_channel_value
 from .constants import (
@@ -441,7 +442,12 @@ class GroupAPI:
         if not self.is_master:
             raise RuntimeError("Not a group master")
         value = output_channel_value(channel)
-        await self._request(f"{API_ENDPOINT_GROUP_SLAVE_CHANNEL}{slave_ip}:{value}")  # type: ignore[attr-defined]
+        endpoint = f"{API_ENDPOINT_GROUP_SLAVE_CHANNEL}{slave_ip}:{value}"
+        response = await self._request(endpoint)  # type: ignore[attr-defined]
+        if (response.raw or "").strip().upper() != "OK" and response.parsed != "OK":
+            raise WiiMResponseError(
+                f"Failed to set member output channel: {response.raw or response.parsed!r}", endpoint=endpoint
+            )
 
     # ------------------------------------------------------------------
     # Group state helpers

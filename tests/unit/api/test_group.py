@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from pywiim.api.base import ApiResponse
-from pywiim.exceptions import WiiMError
+from pywiim.exceptions import WiiMError, WiiMResponseError
 from pywiim.models import DeviceGroupInfo, DeviceInfo
 
 
@@ -399,6 +399,24 @@ class TestGroupAPISlaveManagement:
             await mock_client.set_slave_channel("192.168.1.102", "left")
 
         mock_client._request.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "response",
+        [
+            ApiResponse(parsed=None, raw="unknown command"),
+            ApiResponse(parsed=None, raw=""),
+            ApiResponse(parsed={"error": "unsupported_command"}, raw=None),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_slave_channel_rejected_response(self, mock_client, response):
+        """The master must acknowledge a member channel command."""
+        mock_client._group_master = "192.168.1.100"
+        type(mock_client).host = "192.168.1.100"
+        mock_client._request = AsyncMock(return_value=response)
+
+        with pytest.raises(WiiMResponseError, match="output channel"):
+            await mock_client.set_slave_channel("192.168.1.101", "left")
 
     @pytest.mark.asyncio
     async def test_set_slave_channel_rejects_unknown_name(self, mock_client):

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from pywiim.api.base import ApiResponse
-from pywiim.exceptions import WiiMError
+from pywiim.exceptions import WiiMError, WiiMResponseError
 
 
 class TestAudioSettingsAPISoundCardSupport:
@@ -289,6 +289,22 @@ class TestAudioSettingsAPIChannelBalance:
 
 class TestAudioSettingsAPIOutputChannel:
     """Test AudioSettingsAPI output channel (stereo / left / right)."""
+
+    @pytest.mark.parametrize(
+        "response",
+        [
+            ApiResponse(parsed=None, raw="unknown command"),
+            ApiResponse(parsed=None, raw=""),
+            ApiResponse(parsed={"error": "unsupported_command"}, raw=None),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_output_channel_rejected_response(self, mock_client, response):
+        """An HTTP 200 response must acknowledge the setting before it succeeds."""
+        mock_client._request = AsyncMock(return_value=response)
+
+        with pytest.raises(WiiMResponseError, match="output channel"):
+            await mock_client.set_output_channel("left")
 
     @pytest.mark.parametrize(
         ("channel", "expected"),
